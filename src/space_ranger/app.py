@@ -2,11 +2,12 @@ from typing import Mapping
 
 import pygame
 
+from space_ranger.logging import init_logging
 from space_ranger.settings import Settings
 from space_ranger.states import State, StateId
 
 
-class App:
+class Application:
     """A main application class.
 
     :param Settings settings: A settings object.
@@ -35,6 +36,7 @@ class App:
 
     def _init(self) -> None:
         """Initialize application."""
+        init_logging()
         pygame.init()
         self._screen = pygame.display.set_mode(
             self._settings.size,
@@ -42,6 +44,7 @@ class App:
             vsync=self._settings.vsync,
         )
         self._clock = pygame.time.Clock()
+        self._current_state.startup()
         self._running = True
 
     def _main_loop(self) -> None:
@@ -72,7 +75,7 @@ class App:
 
     def _render(self) -> None:
         """Render current state."""
-        pass
+        pygame.display.flip()
 
     def _cleanup(self) -> None:
         pygame.quit()

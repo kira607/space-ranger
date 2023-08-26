@@ -6,9 +6,8 @@ StateId = str
 class State:
     """An application state."""
 
-    _id: StateId = "state_id"
-
-    def __init__(self) -> None:
+    def __init__(self, state_id: StateId) -> None:
+        self._id = state_id
         self._done = False
         self._quit = False
         self._previous: StateId | None = None

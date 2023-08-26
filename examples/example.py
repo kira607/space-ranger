@@ -1,3 +1,6 @@
+# type: ignore
+# noqa
+
 import pygame as pg
 import sys
 
