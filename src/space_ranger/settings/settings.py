@@ -5,12 +5,12 @@ from dataclasses import dataclass
 class Settings:
     """A settings class."""
 
+    screen_width: int = 0
+    screen_height: int = 0
     fps: int = 60
-    width: int = 640
-    height: int = 480
     vsync: int = 0
 
     @property
-    def size(self) -> tuple[int, int]:
+    def screen_size(self) -> tuple[int, int]:
         """Get window size."""
-        return self.width, self.height
+        return self.screen_width, self.screen_height

@@ -15,7 +15,7 @@ class AssetsManager:
 
     big_asteroid = ImageAsset("asteroid_big.png")
 
-    menu_font = FontAsset("MK-90.ttf", size=36)
+    menu_font = FontAsset("MK-90.ttf")
 
 
 ASSETS = AssetsManager()

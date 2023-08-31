@@ -7,7 +7,7 @@ from typing import Any, Generic, TypeVar
 from space_ranger.logging import LoggerMixin
 
 if typing.TYPE_CHECKING:
-    from space_ranger.assets_manager.assets_manager import AssetsManager
+    from space_ranger.assets_manager import AssetsManager
 
 
 ASSETS_DIR = Path(os.path.dirname(__file__), "..", "assets")
@@ -27,7 +27,6 @@ class Asset(ABC, LoggerMixin, Generic[T]):
     """
 
     sub_dir = ""
-    asset_type = None
 
     def __init__(
         self,
@@ -37,8 +36,8 @@ class Asset(ABC, LoggerMixin, Generic[T]):
     ) -> None:
         self.owner: AssetsManager
         self.private_name: str
-        self.asset_name: str
-        self.kwargs: dict[str, Any]
+        self.asset_name: str = name
+        self.kwargs: dict[str, Any] = kwargs
         if description is None:
             description = f"{self.__class__.__name__} '{self.asset_name}' at '{self.path}'"
         self.__doc__ = description

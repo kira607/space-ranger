@@ -1,9 +1,13 @@
+from abc import ABC, abstractmethod
+
 import pygame
+
+from space_ranger.logging import LoggerMixin
 
 StateId = str
 
 
-class State:
+class State(ABC, LoggerMixin):
     """An application state."""
 
     def __init__(self, state_id: StateId) -> None:
@@ -37,30 +41,40 @@ class State:
         assert isinstance(value, StateId)
         self._previous = value
 
-    def startup(self) -> None:
+    def startup(self) -> None:  # noqa: B027
         """Do a state statup."""
-        pass
+        self.logger.info(f"Starting up {self.__class__.__name__} state...")
 
     def cleanup(self) -> None:
         """Do a state cleanup."""
+        self.logger.info(f"Cleaning up {self.__class__.__name__} state...")
         self._done = False
 
+    @abstractmethod
     def process_event(self, event: pygame.event.Event) -> None:
         """Process a pygame event.
 
         :param pygame.event.Event event: An event to process.
         :return: None
         """
-        pass
+        raise NotImplementedError()
 
-    def update(self, screen: pygame.Surface, delta_time: float) -> None:
+    @abstractmethod
+    def update(self, delta_time: float) -> None:
         """Update state.
 
-        :param pygame.Surface screen: A current screen.
         :param float delta_time: Delta time.
         :return: None
         """
-        pass
+        raise NotImplementedError()
+
+    @abstractmethod
+    def draw(self, screen: pygame.Surface) -> None:
+        """Draw state on a given screen.
+
+        :param pygame.Surface screen: Target screen.
+        """
+        raise NotImplementedError()
 
     def get_next(self) -> StateId:
         """Get a next state id."""
