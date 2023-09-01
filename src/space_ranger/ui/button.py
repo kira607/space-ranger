@@ -112,7 +112,7 @@ class Button(UIElement, ABC):
     # Helpers?
 
     def _update_position(self) -> None:
-        self._rect = self._rect.move(*self.position)
+        self._rect = pygame.Rect(*self.position, self.width, self.height)
         self._text.position = (
             self.position.x + self.width / 2 - self._text.width / 2,
             self.position.y + self.height / 2 - self._text.height / 2,

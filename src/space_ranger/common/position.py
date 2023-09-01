@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections import namedtuple
-from typing import Any, TypeAlias, Union
+from typing import Any, Union
 
 PositionValue = int | float
 PositionTuple = tuple[PositionValue, PositionValue]

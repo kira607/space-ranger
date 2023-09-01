@@ -1,3 +1,5 @@
+from enum import Enum, auto
+
 import pygame
 
 from space_ranger.common import Color
@@ -6,27 +8,45 @@ from space_ranger.states import State, StateId
 from space_ranger.ui import Button
 
 
+class MenuState(Enum):
+    """Main menu state."""
+
+    MAIN = auto()
+    CONTROLS = auto()
+    OPTIONS = auto()
+
+
 class MainMenu(State):
     """A main menu state."""
 
     def __init__(self, state_id: StateId) -> None:
         super().__init__(state_id)
 
+        # Assets and visual
         self.click_sound: pygame.mixer.Sound
         self.font: pygame.font.Font
         self.button_color: Color
         self.text_color: Color
-
-        self.button_play: Button
-        self.button_controls: Button
-        self.button_options: Button
-        self.button_exit: Button
 
         self.button_play_hover_color: Color
         self.button_controls_hover_color: Color
         self.button_options_hover_color: Color
         self.button_exit_hover_color: Color
 
+        # Components
+        self.button_play: Button
+        self.button_controls: Button
+        self.button_options: Button
+        self.button_exit: Button
+
+        self.front_flash: pygame.Rect
+
+        # Misc, internal
+        self.state: MenuState
+        self.updating: bool
+        self.update_clock: pygame.time.Clock
+        self.sign: int
+        self.update_time: float
         self.space_between_buttons: int
 
     def startup(self) -> None:
@@ -47,6 +67,17 @@ class MainMenu(State):
         self.button_controls = self._make_button("CONTROLS")
         self.button_options = self._make_button("OPTIONS")
         self.button_exit = self._make_button("EXIT")
+
+        self.front_flash = pygame.Rect(0, 0, SETTINGS.screen_width, SETTINGS.screen_height)
+
+        self.state = MenuState.MAIN
+        self.updating = False
+        self.update_clock = pygame.time.Clock()
+        self.sign = 0
+        self.update_time = 0
+        self.update_time_max = 600
+
+        self.c = pygame.time.Clock()
 
         button_height = self.button_play.height
         self.space_between_buttons = int(SETTINGS.screen_height * 0.009)
@@ -78,7 +109,10 @@ class MainMenu(State):
         :param pygame.event.Event event: A pygame event to process.
         """
         if event.type == pygame.MOUSEBUTTONDOWN:
-            self.click_sound.play()
+            self._handle_click()
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_u:
+            self.button_play.position = (100, 100)
 
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self._quit = True
@@ -89,7 +123,17 @@ class MainMenu(State):
 
         :param float delta_time: Delta time.
         """
+        self.update_time += self.update_clock.tick()
         self._update_buttons_colors()
+
+        if self.update_time > self.update_time_max:
+            self.updating = False
+
+        if self.updating:
+            self._move_button(self.button_play)
+            self._move_button(self.button_controls)
+            self._move_button(self.button_options)
+            self._move_button(self.button_exit)
 
     def draw(self, screen: pygame.Surface) -> None:
         """Draw main menu on a given screen.
@@ -97,6 +141,13 @@ class MainMenu(State):
         :param pygame.Surface screen: Target screen.
         """
         screen.fill(Color(230, 230, 230, 200))
+
+        if self.updating:
+            t = self.update_clock.tick()
+            alpha = -1920 * t * t + 1020 * t
+            if alpha > 0:
+                pygame.draw.rect(screen, Color(255, 255, 255, alpha), self.front_flash)
+
         self.button_play.draw(screen)
         self.button_controls.draw(screen)
         self.button_options.draw(screen)
@@ -116,6 +167,47 @@ class MainMenu(State):
             text_color=self.text_color,
             text_font=self.font,
         )
+
+    def _handle_click(self) -> None:
+        """Handle mouse button click."""
+        self.click_sound.play()
+        clicked_button = self._get_hovered_button()
+
+        if not clicked_button:
+            return
+
+        self.logger.info(f"Clicked: {clicked_button.text}")
+
+        if clicked_button == self.button_play:
+            pass
+
+        if clicked_button == self.button_controls:
+            if self.state == MenuState.CONTROLS:
+                self.state = MenuState.MAIN
+                self.sign = -1
+            else:
+                self.state = MenuState.CONTROLS
+                self.sign = 1
+
+            self.update_clock = pygame.time.Clock()
+            self.update_time = 0
+            self.updating = True
+
+        if clicked_button == self.button_options:
+            if self.state == MenuState.OPTIONS:
+                self.state = MenuState.MAIN
+                self.sign = 1
+            else:
+                self.state = MenuState.OPTIONS
+                self.sign = -1
+
+            self.update_clock = pygame.time.Clock()
+            self.update_time = 0
+            self.updating = True
+
+        if clicked_button == self.button_exit:
+            self._quit = True
+            return
 
     def _update_buttons_colors(self) -> None:
         """Highlight hovered button."""
@@ -141,6 +233,27 @@ class MainMenu(State):
         else:
             self.button_exit.text_color = self.text_color
 
+    def _move_button(self, button: Button) -> None:
+        current_pos = pygame.math.Vector2(button.position.x, button.position.y)
+        dest_pos = self._get_button_dest(button)
+        path_vector = dest_pos - current_pos
+        self.logger.info(f"Button {button.text} dest: {dest_pos}")
+        path_length = self.sign * path_vector.magnitude()
+        x = button.position.x + path_length * self.update_time / self.update_time_max
+        button.position = (x, button.position.y)
+
+    def _get_button_dest(self, button: Button) -> pygame.math.Vector2:
+        if self.state == MenuState.MAIN:
+            x = (SETTINGS.screen_width - button.width) / 2
+
+        if self.state == MenuState.CONTROLS:
+            x = SETTINGS.screen_width - self.space_between_buttons - button.width
+
+        if self.state == MenuState.OPTIONS:
+            x = self.space_between_buttons
+
+        return pygame.math.Vector2(x, button.position.y)
+
     def _get_hovered_button(self) -> Button | None:
         """Get a button on which mouse is hovered on.
 
@@ -148,6 +261,12 @@ class MainMenu(State):
         :rtype: Button | None
         """
         mouse_point = pygame.mouse.get_pos()
-        if self.button_play._rect.collidepoint(mouse_point):
-            return self.button_play
+        for button in (
+            self.button_play,
+            self.button_controls,
+            self.button_options,
+            self.button_exit,
+        ):
+            if button._rect.collidepoint(mouse_point):
+                return button
         return None
