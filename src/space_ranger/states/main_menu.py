@@ -22,7 +22,6 @@ class MainMenu(State):
     def __init__(self, state_id: StateId) -> None:
         super().__init__(state_id)
 
-        # Assets and visual
         self.click_sound: pygame.mixer.Sound
         self.font: pygame.font.Font
         self.button_color: Color
@@ -33,20 +32,21 @@ class MainMenu(State):
         self.button_options_hover_color: Color
         self.button_exit_hover_color: Color
 
-        # Components
         self.button_play: Button
         self.button_controls: Button
         self.button_options: Button
         self.button_exit: Button
 
-        self.front_flash: pygame.Rect
+        self.front_flash: pygame.Surface
 
-        # Misc, internal
         self.state: MenuState
+        self.sign: int
+
         self.updating: bool
         self.update_clock: pygame.time.Clock
-        self.sign: int
         self.update_time: float
+        self.update_time_max: int
+
         self.space_between_buttons: int
 
     def startup(self) -> None:
@@ -68,16 +68,15 @@ class MainMenu(State):
         self.button_options = self._make_button("OPTIONS")
         self.button_exit = self._make_button("EXIT")
 
-        self.front_flash = pygame.Rect(0, 0, SETTINGS.screen_width, SETTINGS.screen_height)
+        self.front_flash = pygame.Surface(SETTINGS.screen_size)
 
         self.state = MenuState.MAIN
+        self.sign = 0
+
         self.updating = False
         self.update_clock = pygame.time.Clock()
-        self.sign = 0
         self.update_time = 0
         self.update_time_max = 600
-
-        self.c = pygame.time.Clock()
 
         button_height = self.button_play.height
         self.space_between_buttons = int(SETTINGS.screen_height * 0.009)
@@ -130,6 +129,7 @@ class MainMenu(State):
             self.updating = False
 
         if self.updating:
+            self.logger.info(f"Update progress: {self.update_time / self.update_time_max}")
             self._move_button(self.button_play)
             self._move_button(self.button_controls)
             self._move_button(self.button_options)
@@ -142,16 +142,17 @@ class MainMenu(State):
         """
         screen.fill(Color(230, 230, 230, 200))
 
-        if self.updating:
-            t = self.update_clock.tick()
-            alpha = -1920 * t * t + 1020 * t
-            if alpha > 0:
-                pygame.draw.rect(screen, Color(255, 255, 255, alpha), self.front_flash)
-
         self.button_play.draw(screen)
         self.button_controls.draw(screen)
         self.button_options.draw(screen)
         self.button_exit.draw(screen)
+
+        if self.updating:
+            t = self.update_time / self.update_time_max
+            alpha = max(0, int((-7 * t * t + 4 * t) * 255))
+            self.front_flash.set_alpha(alpha)
+            self.front_flash.fill(Color(255, 255, 255, alpha))
+            screen.blit(self.front_flash, (0, 0))
 
     def _make_button(self, text: str) -> Button:
         """Make a menu button.
@@ -237,7 +238,6 @@ class MainMenu(State):
         current_pos = pygame.math.Vector2(button.position.x, button.position.y)
         dest_pos = self._get_button_dest(button)
         path_vector = dest_pos - current_pos
-        self.logger.info(f"Button {button.text} dest: {dest_pos}")
         path_length = self.sign * path_vector.magnitude()
         x = button.position.x + path_length * self.update_time / self.update_time_max
         button.position = (x, button.position.y)
