@@ -40,7 +40,6 @@ class MainMenu(State):
         self.front_flash: pygame.Surface
 
         self.state: MenuState
-        self.sign: int
 
         self.updating: bool
         self.update_clock: pygame.time.Clock
@@ -71,7 +70,6 @@ class MainMenu(State):
         self.front_flash = pygame.Surface(SETTINGS.screen_size)
 
         self.state = MenuState.MAIN
-        self.sign = 0
 
         self.updating = False
         self.update_clock = pygame.time.Clock()
@@ -185,10 +183,8 @@ class MainMenu(State):
         if clicked_button == self.button_controls:
             if self.state == MenuState.CONTROLS:
                 self.state = MenuState.MAIN
-                self.sign = -1
             else:
                 self.state = MenuState.CONTROLS
-                self.sign = 1
 
             self.update_clock = pygame.time.Clock()
             self.update_time = 0
@@ -197,10 +193,8 @@ class MainMenu(State):
         if clicked_button == self.button_options:
             if self.state == MenuState.OPTIONS:
                 self.state = MenuState.MAIN
-                self.sign = 1
             else:
                 self.state = MenuState.OPTIONS
-                self.sign = -1
 
             self.update_clock = pygame.time.Clock()
             self.update_time = 0
@@ -237,10 +231,8 @@ class MainMenu(State):
     def _move_button(self, button: Button) -> None:
         current_pos = pygame.math.Vector2(button.position.x, button.position.y)
         dest_pos = self._get_button_dest(button)
-        path_vector = dest_pos - current_pos
-        path_length = self.sign * path_vector.magnitude()
-        x = button.position.x + path_length * self.update_time / self.update_time_max
-        button.position = (x, button.position.y)
+        path_vector = current_pos + (dest_pos - current_pos) * self.update_time / self.update_time_max
+        button.position = (path_vector.x, path_vector.y)
 
     def _get_button_dest(self, button: Button) -> pygame.math.Vector2:
         if self.state == MenuState.MAIN:
