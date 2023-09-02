@@ -6,10 +6,15 @@ import pygame
 from space_ranger.assets_manager.asset import Asset
 
 
-class _Font:
-    """A font asset."""
+class FontFactory:
+    """A font factory.
 
-    def __init__(self, path: Path, **kwargs: Any) -> None:
+    Can load fonts and create new pygame.font.Font instances.
+
+    :param str | Path | None path: A path to the font file.
+    """
+
+    def __init__(self, path: str | Path | None, **kwargs: Any) -> None:
         self.path = path
         self.kwargs = kwargs
 
@@ -18,11 +23,11 @@ class _Font:
         return pygame.font.Font(self.path, size=size, **self.kwargs)
 
 
-class FontAsset(Asset[_Font]):
+class FontAsset(Asset[FontFactory]):
     """A font asset."""
 
     sub_dir = "fonts"
 
     def load_asset(self) -> None:
         """Load font asset."""
-        self.asset = _Font(self.path, **self.kwargs)
+        self.asset = FontFactory(self.path, **self.kwargs)
