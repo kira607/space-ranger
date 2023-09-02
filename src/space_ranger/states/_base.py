@@ -60,10 +60,10 @@ class State(ABC, LoggerMixin):
         raise NotImplementedError()
 
     @abstractmethod
-    def update(self, delta_time: float) -> None:
+    def update(self, delta_time: int) -> None:
         """Update state.
 
-        :param float delta_time: Delta time.
+        :param int delta_time: Delta time (in milliseconds).
         :return: None
         """
         raise NotImplementedError()

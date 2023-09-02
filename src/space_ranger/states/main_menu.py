@@ -42,7 +42,6 @@ class MainMenu(State):
         self.state: MenuState
 
         self.updating: bool
-        self.update_clock: pygame.time.Clock
         self.update_time: float
         self.update_time_max: int
 
@@ -72,7 +71,6 @@ class MainMenu(State):
         self.state = MenuState.MAIN
 
         self.updating = False
-        self.update_clock = pygame.time.Clock()
         self.update_time = 0
         self.update_time_max = 600
 
@@ -115,19 +113,19 @@ class MainMenu(State):
             self._quit = True
             return
 
-    def update(self, delta_time: float) -> None:
+    def update(self, delta_time: int) -> None:
         """Update main menu state.
 
-        :param float delta_time: Delta time.
+        :param int delta_time: Delta time (in milliseconds).
         """
-        self.update_time += self.update_clock.tick()
+        self.update_time += delta_time
         self._update_buttons_colors()
 
-        if self.update_time > self.update_time_max:
+        if self.update_progress >= 1:
             self.updating = False
 
         if self.updating:
-            self.logger.info(f"Update progress: {self.update_time / self.update_time_max}")
+            self.logger.debug(f"Updating... t={self.update_time} ({self.update_progress})")
             self._move_button(self.button_play)
             self._move_button(self.button_controls)
             self._move_button(self.button_options)
@@ -146,11 +144,16 @@ class MainMenu(State):
         self.button_exit.draw(screen)
 
         if self.updating:
-            t = self.update_time / self.update_time_max
+            t = self.update_progress
             alpha = max(0, int((-7 * t * t + 4 * t) * 255))
             self.front_flash.set_alpha(alpha)
             self.front_flash.fill(Color(255, 255, 255, alpha))
             screen.blit(self.front_flash, (0, 0))
+
+    @property
+    def update_progress(self) -> float:
+        """Get a normalized state update progress."""
+        return self.update_time / self.update_time_max
 
     def _make_button(self, text: str) -> Button:
         """Make a menu button.
@@ -186,7 +189,6 @@ class MainMenu(State):
             else:
                 self.state = MenuState.CONTROLS
 
-            self.update_clock = pygame.time.Clock()
             self.update_time = 0
             self.updating = True
 
@@ -196,7 +198,6 @@ class MainMenu(State):
             else:
                 self.state = MenuState.OPTIONS
 
-            self.update_clock = pygame.time.Clock()
             self.update_time = 0
             self.updating = True
 
@@ -231,7 +232,7 @@ class MainMenu(State):
     def _move_button(self, button: Button) -> None:
         current_pos = pygame.math.Vector2(button.position.x, button.position.y)
         dest_pos = self._get_button_dest(button)
-        path_vector = current_pos + (dest_pos - current_pos) * self.update_time / self.update_time_max
+        path_vector = current_pos + (dest_pos - current_pos) * self.update_progress
         button.position = (path_vector.x, path_vector.y)
 
     def _get_button_dest(self, button: Button) -> pygame.math.Vector2:

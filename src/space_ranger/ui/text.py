@@ -51,12 +51,6 @@ class Text(UIElement, ABC):
         """Get text height."""
         return self._img.get_height()
 
-    @property
-    def is_hovered(self) -> bool:
-        """Whether a text is hovered."""
-        mouse_point = pygame.mouse.get_pos()
-        return self._img.get_rect().collidepoint(mouse_point)
-
     # Text properties
 
     @property

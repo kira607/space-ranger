@@ -52,7 +52,7 @@ class Application(LoggerMixin):
     def _main_loop(self) -> None:
         """Run a main loop of the application."""
         while self._running:
-            delta_time = self._clock.tick(SETTINGS.fps) / 1000.0
+            delta_time = self._clock.tick(SETTINGS.fps)
             self._process_events()
             self._update(delta_time)
             self._draw()
@@ -64,10 +64,10 @@ class Application(LoggerMixin):
                 self._running = False
             self._current_state.process_event(event)
 
-    def _update(self, delta_time: float) -> None:
+    def _update(self, delta_time: int) -> None:
         """Run current state update.
 
-        :param float delta_time: Delta time.
+        :param int delta_time: Delta time (in milliseconds).
         """
         if self._current_state.quit:
             self._running = False
