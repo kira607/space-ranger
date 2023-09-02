@@ -1,6 +1,8 @@
 from abc import ABC
 
-from space_ranger.common import Position, TPosition, is_position
+from pygame import Vector2
+
+from space_ranger.common import TPosition
 
 from .ui_element_abc import UIElementABC
 
@@ -9,13 +11,13 @@ class UIElement(UIElementABC, ABC):
     """A base UI element."""
 
     def __init__(self, position: TPosition = (0, 0)) -> None:
-        self._position: Position
+        self._position: Vector2
         self._set_position(position)
 
     # Element properties
 
     @property
-    def position(self) -> Position:
+    def position(self) -> Vector2:
         """The position of the element."""
         return self._position
 
@@ -32,9 +34,10 @@ class UIElement(UIElementABC, ABC):
 
     def _set_position(self, position: TPosition) -> None:
         """Set element position."""
-        if is_position(position):
-            position = Position(position[0], position[1])
+        if isinstance(position, Vector2):
             self._position = position
+        else:
+            self._position = Vector2(*position)
 
     def _update_position(self) -> None:  # noqa: B027
         """Update element position."""

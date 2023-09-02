@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 
 import pygame
 
-from space_ranger.common import Position
-
 
 class UIElementABC(ABC):
     """UI element interface."""
@@ -12,7 +10,7 @@ class UIElementABC(ABC):
 
     @property
     @abstractmethod
-    def position(self) -> Position:
+    def position(self) -> pygame.Vector2:
         """The position of the element."""
         raise NotImplementedError()
 

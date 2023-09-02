@@ -51,8 +51,8 @@ class MainMenu(State):
         """Startup."""
         super().startup()
 
-        self.click_sound = ASSETS.click_sound
-        self.font = ASSETS.menu_font(int(SETTINGS.screen_height * 0.027))
+        self.click_sound = ASSETS.click_sound  # type: ignore
+        self.font = ASSETS.menu_font(int(SETTINGS.screen_height * 0.027))  # type: ignore
         self.button_color = Color(100, 100, 100, 255)
         self.text_color = Color(170, 170, 170, 255)
 
@@ -77,19 +77,19 @@ class MainMenu(State):
         button_height = self.button_play.height
         self.space_between_buttons = int(SETTINGS.screen_height * 0.009)
 
-        self.button_play.position = (
+        self.button_play.position = (  # type: ignore
             (SETTINGS.screen_width - self.button_play.width) / 2,
             SETTINGS.screen_height / 2 - button_height * 2 - self.space_between_buttons * 1.5,
         )
-        self.button_controls.position = (
+        self.button_controls.position = (  # type: ignore
             (SETTINGS.screen_width - self.button_controls.width) / 2,
             SETTINGS.screen_height / 2 - button_height - self.space_between_buttons * 0.5,
         )
-        self.button_options.position = (
+        self.button_options.position = (  # type: ignore
             (SETTINGS.screen_width - self.button_options.width) / 2,
             SETTINGS.screen_height / 2 + self.space_between_buttons * 0.5,
         )
-        self.button_exit.position = (
+        self.button_exit.position = (  # type: ignore
             (SETTINGS.screen_width - self.button_exit.width) / 2,
             SETTINGS.screen_height / 2 + button_height + self.space_between_buttons * 1.5,
         )
@@ -107,7 +107,7 @@ class MainMenu(State):
             self._handle_click()
 
         if event.type == pygame.KEYDOWN and event.key == pygame.K_u:
-            self.button_play.position = (100, 100)
+            self.button_play.position = (100, 100)  # type: ignore
 
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
             self._quit = True
@@ -233,7 +233,7 @@ class MainMenu(State):
         current_pos = pygame.math.Vector2(button.position.x, button.position.y)
         dest_pos = self._get_button_dest(button)
         path_vector = current_pos + (dest_pos - current_pos) * self.update_progress
-        button.position = (path_vector.x, path_vector.y)
+        button.position = path_vector
 
     def _get_button_dest(self, button: Button) -> pygame.math.Vector2:
         if self.state == MenuState.MAIN:

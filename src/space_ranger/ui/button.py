@@ -38,7 +38,7 @@ class Button(UIElement, ABC):
         super().__init__(position)
         self._text = _ButtonText(text=text, color=text_color, font=text_font)
         self._color = color
-        self._rect = pygame.Rect(
+        self._rect = pygame.Rect(  # type: ignore
             *self.position,
             self._text.width * 1.3,
             self._text.height * 1.6,
@@ -112,8 +112,8 @@ class Button(UIElement, ABC):
     # Helpers?
 
     def _update_position(self) -> None:
-        self._rect = pygame.Rect(*self.position, self.width, self.height)
-        self._text.position = (
+        self._rect = pygame.Rect(*self.position, self.width, self.height)  # type: ignore
+        self._text.position = (  # type: ignore
             self.position.x + self.width / 2 - self._text.width / 2,
             self.position.y + self.height / 2 - self._text.height / 2,
         )
