@@ -1,7 +1,7 @@
-from ._game_object_property import GameObjectProperty
+from space_ranger.core import Property
 
 
-class Text(GameObjectProperty[str]):
+class Text(Property[str]):
     """A text game object property.
 
     Holds a text string.

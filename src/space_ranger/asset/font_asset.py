@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Any
 
-import pygame
+import pygame as pg
 
-from space_ranger.assets_manager.asset import Asset
+from .asset import Asset
 
 
 class FontFactory:
@@ -18,9 +18,9 @@ class FontFactory:
         self.path = path
         self.kwargs = kwargs
 
-    def __call__(self, size: int) -> pygame.font.Font:
+    def __call__(self, size: int = 16) -> pg.font.Font:
         """Load font using given size."""
-        return pygame.font.Font(self.path, size=size, **self.kwargs)
+        return pg.font.Font(self.path, size=size, **self.kwargs)
 
 
 class FontAsset(Asset[FontFactory]):
@@ -28,6 +28,6 @@ class FontAsset(Asset[FontFactory]):
 
     sub_dir = "fonts"
 
-    def load_asset(self) -> None:
+    def _load_asset(self) -> FontFactory:
         """Load font asset."""
-        self.asset = FontFactory(self.path, **self.kwargs)
+        return FontFactory(self.path, **self._kwargs)

@@ -1,6 +1,6 @@
 import pygame
 
-from space_ranger.assets_manager.asset import Asset
+from .asset import Asset
 
 
 class SoundAsset(Asset[pygame.mixer.Sound]):
@@ -8,6 +8,6 @@ class SoundAsset(Asset[pygame.mixer.Sound]):
 
     sub_dir = "sounds"
 
-    def load_asset(self) -> None:
+    def _load_asset(self) -> pygame.mixer.Sound:
         """Load sound asset."""
-        self.asset = pygame.mixer.Sound(self.path)
+        return pygame.mixer.Sound(self.path)

@@ -1,6 +1,5 @@
-"""A base game object property and some useful properties."""
+"""GameObjectProperty variants."""
 
-from ._game_object_property import GameObjectProperty
 from .color_property import Color as Color
 from .font_property import Font as Font
 from .int_property import Int as Int

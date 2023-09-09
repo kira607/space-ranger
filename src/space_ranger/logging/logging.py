@@ -1,14 +1,10 @@
 import logging
 from typing import Literal
 
-DEFAULT_LOGGING_LEVEL = "DEBUG"
-DEFAULT_LOGGING_FORMAT = "{asctime} ({filename}) [{levelname}]: {message}"
-DEFAULT_LOGGING_STYLE = "{"
-
 
 def init_logging(
     level: str = "DEBUG",
-    fmt: str = "{asctime} ({filename}) [{levelname}]: {message}",
+    fmt: str = "{asctime} ({filename}:{lineno}) [{levelname}]: {message}",
     style: Literal["{", "%", "$"] = "{",
 ) -> None:
     """Initialize logging.

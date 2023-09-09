@@ -1,10 +1,10 @@
 from typing import Mapping
 
-import pygame
+import pygame as pg
 
-from space_ranger.globals import SETTINGS
-from space_ranger.logging import LoggerMixin, init_logging
-from space_ranger.states import State, StateId
+from space_ranger import ctx
+from space_ranger.core import Scene, SceneId
+from space_ranger.logging import LoggerMixin
 
 
 class Application(LoggerMixin):
@@ -17,14 +17,14 @@ class Application(LoggerMixin):
 
     def __init__(
         self,
-        states: Mapping[StateId, State],
-        initial_state_id: str,
+        scenes: Mapping[SceneId, Scene],
+        initial_scene_id: str,
     ) -> None:
-        self._states = states
-        self._current_state = self._states[initial_state_id]
+        self._scenes = scenes
+        self._current_scene = self._scenes[initial_scene_id]
         self._running = False
-        self._screen: pygame.Surface
-        self._clock: pygame.time.Clock
+        self._screen: pg.Surface
+        self._clock: pg.time.Clock
 
     def run(self) -> None:
         """Run application."""
@@ -34,63 +34,63 @@ class Application(LoggerMixin):
 
     def _init(self) -> None:
         """Initialize application."""
-        init_logging()
         self.logger.info("Initializing application...")
-        pygame.init()
-        self._screen = pygame.display.set_mode(
-            SETTINGS.screen_size,
-            pygame.HWSURFACE | pygame.DOUBLEBUF,
-            vsync=SETTINGS.vsync,
+        pg.init()
+        self._screen = pg.display.set_mode(
+            ctx.settings.screen_size,
+            pg.HWSURFACE | pg.DOUBLEBUF,
+            vsync=ctx.settings.vsync,
         )
-        SETTINGS.screen_width = self._screen.get_width()
-        SETTINGS.screen_height = self._screen.get_height()
-        pygame.display.set_caption("Space Ranger")
-        self._clock = pygame.time.Clock()
-        self._current_state.startup()
+        ctx.settings.screen_width = self._screen.get_width()
+        ctx.settings.screen_height = self._screen.get_height()
+        pg.display.set_caption("Space Ranger")
+        self._clock = pg.time.Clock()
+        self._current_scene.start()
         self._running = True
 
     def _main_loop(self) -> None:
         """Run a main loop of the application."""
+        self.logger.info("Running main loop of the application")
         while self._running:
-            delta_time = self._clock.tick(SETTINGS.fps)
+            delta_time = self._clock.tick(ctx.settings.fps)
             self._process_events()
             self._update(delta_time)
             self._draw()
 
     def _process_events(self) -> None:
         """Process pygame events."""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
                 self._running = False
-            self._current_state.process_event(event)
+            self._current_scene.process_event(event)
 
     def _update(self, delta_time: int) -> None:
         """Run current state update.
 
         :param int delta_time: Delta time (in milliseconds).
         """
-        if self._current_state.quit:
+        if self._current_scene.quit:
             self._running = False
-        elif self._current_state.done:
-            self._current_state = self._get_next_state()
-        self._current_state.update(delta_time)
+        elif self._current_scene.done:
+            self._current_scene = self._get_next_scene()
+        self._current_scene.update(delta_time)
 
     def _draw(self) -> None:
         """Render current state."""
-        self._current_state.draw(self._screen)
-        pygame.display.flip()
+        self._current_scene.draw(self._screen)
+        pg.display.flip()
 
     def _cleanup(self) -> None:
         """Cleanup before quitting application."""
-        self._current_state.cleanup()
-        pygame.quit()
+        self._current_scene.finish()
+        pg.quit()
 
-    def _get_next_state(self) -> State:
+    def _get_next_scene(self) -> Scene:
         """Get a next state."""
-        previous_state_id = self._current_state.id
-        next_state_id = self._current_state.get_next()
-        self._current_state.cleanup()
-        next_state = self._states[next_state_id]
+        previous_state_id = self._current_scene.id
+        next_state_id = self._current_scene.get_next()
+        self._current_scene.finish()
+        next_state = self._scenes[next_state_id]
         next_state.previous = previous_state_id
-        next_state.startup()
+        next_state.start()
         return next_state

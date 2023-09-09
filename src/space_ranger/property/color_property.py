@@ -1,9 +1,9 @@
 import pygame as pg
 
-from ._game_object_property import GameObjectProperty
+from space_ranger.core import Property
 
 
-class Color(GameObjectProperty[pg.Color]):
+class Color(Property[pg.Color]):
     """A color game object property.
 
     Holds a pygame.Color value.
@@ -11,5 +11,5 @@ class Color(GameObjectProperty[pg.Color]):
     :param pygame.Color default: The default color, defaults to pygame.Color(0, 0, 0, 255).
     """
 
-    __animatable__ = False
+    __animatable__ = True
     __default__ = pg.Color(0, 0, 0, 255)

@@ -1,9 +1,9 @@
-from pygame import Vector2
+import pygame as pg
 
-from ._game_object_property import GameObjectProperty
+from space_ranger.core import Property
 
 
-class Position(GameObjectProperty[Vector2]):
+class Position(Property[pg.Vector2]):
     """A position game object property.
 
     Represents a position of a game object on a screen.
@@ -12,4 +12,4 @@ class Position(GameObjectProperty[Vector2]):
     """
 
     __animatable__ = True
-    __default__ = Vector2(0, 0)
+    __default__ = pg.Vector2(0, 0)

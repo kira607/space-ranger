@@ -6,5 +6,3 @@ from .color import GREEN as GREEN
 from .color import GREY as GREY
 from .color import RED as RED
 from .color import WHITE as WHITE
-from .color import Color as Color
-from .position import TPosition as TPosition

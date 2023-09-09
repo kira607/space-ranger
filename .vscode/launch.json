@@ -8,16 +8,10 @@
             "name": "Space Ranger",
             "type": "python",
             "request": "launch",
-            "program": "/home/kirill/programming/space-ranger/main.py",
+            "module": "space_ranger",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "args": ["-l", "debug"],
         },
-        {
-            "name": "Python: Module",
-            "type": "python",
-            "request": "launch",
-            "module": "enter-your-module-name",
-            "justMyCode": true
-        }
     ]
 }

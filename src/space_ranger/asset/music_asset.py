@@ -1,11 +1,11 @@
 from pathlib import Path
 
-import pygame
+import pygame as pg
 
-from space_ranger.assets_manager.asset import Asset
+from .asset import Asset
 
 
-class _MusicPlayer:
+class MusicPlayer:
     """A music player."""
 
     def __init__(self, path: Path) -> None:
@@ -16,24 +16,24 @@ class _MusicPlayer:
 
         :param float volume: New volume value (between 0.0 and 1.0).
         """
-        pygame.mixer.music.set_volume(volume)
+        pg.mixer.music.set_volume(volume)
 
     def play(self) -> None:
         """Start plaing music."""
-        pygame.mixer.music.unload()
-        pygame.mixer.music.load(self.path)
-        pygame.mixer.music.play()
+        pg.mixer.music.unload()
+        pg.mixer.music.load(self.path)
+        pg.mixer.music.play()
 
     def stop(self) -> None:
         """Stop playing music."""
-        pygame.mixer.music.stop()
+        pg.mixer.music.stop()
 
 
-class MusicAsset(Asset[_MusicPlayer]):
+class MusicAsset(Asset[MusicPlayer]):
     """A music asset."""
 
     sub_dir = "music"
 
-    def load_asset(self) -> None:
-        """Load font asset."""
-        self.asset = _MusicPlayer(self.path)
+    def _load_asset(self) -> MusicPlayer:
+        """Load music asset."""
+        return MusicPlayer(self.path)

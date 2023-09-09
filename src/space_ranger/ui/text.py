@@ -1,102 +1,81 @@
-from abc import ABC
+import pygame as pg
 
-import pygame
-
-from space_ranger.common import BLACK, Color, TPosition
+from space_ranger.asset import FontFactory
+from space_ranger.property import Color, Font, Int
+from space_ranger.property import Text as TextProp
 
 from .ui_element import UIElement
 
 
-class Text(UIElement, ABC):
-    """A text object.
+class _TextSprite(pg.sprite.Sprite):
+    """A text game object sprite."""
 
-    Attributes:
-        position: Position of the text.
-        widht: Width of the text.
-        height: Height of the text.
-        text: Text string.
-        font: Text font.
-        color: Text color.
+    def __init__(self, text: str, font: pg.font.Font, color: pg.Color, pos: pg.Vector2) -> None:
+        super().__init__()
+        self.image: pg.Surface = font.render(text, False, color)
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (pos.x, pos.y)
 
-    :param str text: A text string to display
-    :param pygame.Color, optional color: Text color, defaults to Color.BLACK
-    :param pygame.font.Font | None, optional font: Text font, defaults to None
+
+class Text(UIElement):
+    """A plain text that can be shown on the screen.
+
+    :param pg.Vector2 | None, optional position: Text position, defaults to None.
+      When None a positon will be (0, 0)
+    :param str, optional text: Text string, defaults to "Text"
+    :param str, optional color: Text color, defaults to BLACK
+    :param int, optional size: Text size, defaults to 16
+    :param FontFactory | None, optional font: Text font, defaults to None
     """
+
+    text = TextProp()
+    color = Color()
+    size = Int()
+    font = Font()
 
     def __init__(
         self,
-        position: TPosition = (0, 0),
+        position: pg.Vector2 | None = None,
         *,
-        text: str = "Text",
-        color: pygame.Color = BLACK,
-        font: pygame.font.Font | None = None,
+        text: str | None = None,
+        color: pg.Color | None = None,
+        size: int | None = None,
+        font: FontFactory | None = None,
     ) -> None:
         super().__init__(position)
-        self._text = text
-        self._color = color
-        self._font = font if font else pygame.font.SysFont("Arial", 20)
-        self._img: pygame.Surface
-        self._update_img()
-        self._update_position()
-
-    # Element properties
+        self.text.set_value(text)
+        self.color.set_value(color)
+        self.size.set_value(size)
+        self.font.set_value(font)
+        self._text_sprite: pg.sprite.GroupSingle
 
     @property
     def width(self) -> int:
         """Get text width."""
-        return self._img.get_width()
+        return self._text_sprite.sprite.image.get_width()
 
     @property
     def height(self) -> int:
         """Get text height."""
-        return self._img.get_height()
+        return self._text_sprite.sprite.image.get_height()
 
-    # Text properties
+    def build(self) -> None:
+        """Build the Text."""
+        for p in self.__children__:
+            print(f"{p.name}={p.value}")
 
-    @property
-    def text(self) -> str:
-        """Text string."""
-        return self._text
+        self._text_sprite = pg.sprite.GroupSingle(
+            _TextSprite(
+                self.text.value,
+                self.font.value(self.size.value),
+                self.color.value,
+                self.position.value,
+            ),
+        )
 
-    @text.setter
-    def text(self, new_text: str) -> None:
-        """Set a new text."""
-        self._text = new_text
-        self._update_img()
-
-    @property
-    def color(self) -> pygame.Color:
-        """Text color."""
-        return self._color
-
-    @color.setter
-    def color(self, new_color: Color) -> None:
-        """Set a new text color."""
-        self._color = new_color
-        self._update_img()
-
-    @property
-    def font(self) -> pygame.font.Font:
-        """Text font."""
-        return self._font
-
-    @font.setter
-    def font(self, new_font: pygame.font.Font) -> None:
-        """Set a new text font."""
-        self._font = new_font
-        self._update_img()
-
-    # Public methods
-
-    def draw(self, screen: pygame.Surface) -> None:
+    def draw(self, screen: pg.Surface) -> None:
         """Draw text on a given screen.
 
         :param pygame.Surface screen: Target screen.
         """
-        screen.blit(self._img, self.position)
-
-    # Helpers?
-
-    def _update_img(self) -> None:
-        """Update an uderlying pygame.Surface object for text."""
-        self._img = self._font.render(self._text, False, self._color)
+        self._text_sprite.draw(screen)

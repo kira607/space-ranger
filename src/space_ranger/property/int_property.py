@@ -1,7 +1,7 @@
-from ._game_object_property import GameObjectProperty
+from space_ranger.core import Property
 
 
-class Int(GameObjectProperty[int]):
+class Int(Property[int]):
     """An int game object property.
 
     Holds an integer value.
@@ -9,5 +9,5 @@ class Int(GameObjectProperty[int]):
     :param int default: The default value, defaults to 0.
     """
 
-    __animatable__ = False
+    __animatable__ = True
     __default__ = 0
