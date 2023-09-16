@@ -1,98 +1,253 @@
 from __future__ import annotations
+from pathlib import Path
 
-import abc
 import typing as t
 
-from space_ranger.logging import LoggerMixin
+import pygame as pg
+
+from space_ranger.asset.font_asset import FontAsset, FontFactory
+
+from .common import Descriptor
 
 if t.TYPE_CHECKING:
     from .component import Component
+    from .game_object import GameObject
 
-_TComponent = t.TypeVar("_TComponent", bound=Component)
+
+__all__ = [
+    "Bool",
+    "Int",
+    "Float",
+    "Angle",
+    "String",
+    "Color",
+]
+
+
 _TPropertyValue = t.TypeVar("_TPropertyValue")
+_TPropertyInput = t.TypeVar("_TPropertyInput")
 
 
-# holds component property value
-# on change triggers parent component to update
-# stays at instance level under protected name
-# accessed using property descriptor
-class PropertyHolder(t.Generic[_TPropertyValue], LoggerMixin):
-    """A component property."""
+class Property(
+    Descriptor[
+        type["Component"] | type["GameObject"],
+        t.Union["Component", "GameObject"],
+        _TPropertyValue,
+        _TPropertyInput,
+    ],
+):
+    """A :class:`space_ranger.core.Component` or :class:`space_ranger.core.GameObject` property.
 
-    __component__: Component
-    __default__: _TPropertyValue
-    __animatable__: bool = False
+    This is a base class to be used to create
+    properties for components and game objects.
 
-    def __init__(self, value: _TPropertyValue) -> None:
-        self._value = value
-
-    def get_value(self) -> _TPropertyValue:
-        """Get property value."""
-        return self._value
-
-    def set_value(self, value: _TPropertyValue) -> None:
-        """Set property value."""
-        self._value = value
-        self.__component__.on_property_change()
-
-    def bind_component(self, component: _TComponent) -> None:
-        """Bind property holder to a component instance."""
-        self.__component__ = component
-
-
-class PropertyDescriptor(t.Generic[_TPropertyValue], LoggerMixin, abc.ABC):
-    """A base component property.
-
-    Property holds exactly one value.
-    A set of properties describes a component state
-
-    :param _TPropertyValue | None, optional default: Default value of the property, defaults to None.
+    :param default: Default value of the property.
+    :type default: _TPropertyValue
     """
 
-    __holder_type__: type[PropertyHolder] = PropertyHolder
+    value_type = _TPropertyValue
+    input_type = _TPropertyInput
 
-    def __init__(self, default: _TPropertyValue | None = None) -> None:
-        self.name: str
-        self.default = default
+    def __init__(self, default: _TPropertyInput) -> None:
+        super().__init__()
+        self.default = self.adapt(default)
 
-    def __get__(
+    def on_collect(self, instance: Component | GameObject) -> None:
+        """Set a default value of the property.
+
+        Creates an instance attribute and sets its value to default
+        when instance is created.
+
+        :param instance: A :class:`space_ranger.core.Component` or :class:`space_ranger.core.GameObject` instance.
+        :type instance: Component | GameObject
+        """
+        setattr(instance, self.name, self.default)
+
+
+_TBoolValue = bool
+_TBoolInput = bool
+
+
+class Bool(Property[_TBoolValue, _TBoolInput]):
+    """An integer property.
+
+    :param default: Initial value, defaults to False.
+    :type default: _TBoolInput
+    """
+
+    value_type = _TBoolValue
+    input_type = _TBoolInput
+
+    def __init__(self, default: _TBoolInput = False) -> None:
+        super().__init__(default)
+
+    def adapt(self, value: _TBoolInput) -> _TBoolValue:  # noqa: D102
+        return bool(value)
+
+
+_TIntValue = int
+_TIntInput = int | float
+
+
+class Int(Property[_TIntValue, _TIntInput]):
+    """An integer property.
+
+    :param default: Initial value, defaults to 0.
+    :type default: _TIntInput
+    """
+
+    value_type = _TIntValue
+    input_type = _TIntInput
+    lowest = None
+    highest = None
+
+    def __init__(
         self,
-        instance: Component | None,
-        owner: type[Component] | None = None,
-    ) -> PropertyHolder[_TPropertyValue]:
-        """Get component property.
+        default: _TIntInput = 0,
+        lowest: _TIntInput | None = None,
+        highest: _TIntInput | None = None,
+    ) -> None:
+        super().__init__(default)
+        self.lowest = lowest
+        self.highest = highest
 
-        Returns the descriptor object itself.
+    def adapt(self, value: _TIntInput) -> _TIntValue:  # noqa: D102
+        return int(self.opt_clamp(int(value)))
+    
+    def opt_clamp(self, value: _TIntValue) -> _TIntValue:
+        if self.lowest is None:
+            if self.highest is None:
+                return value
+            return min(value, self.highest)
+        if self.highest is None:
+            return max(value, self.lowest)
+        return pg.math.clamp(value, self.lowest, self.highest)
 
-        :param Component instance: Component instance that has the property.
-        :param type[Component] owner: Instance class. Should be Component type or its subclass.
 
-        :return: A component property descriptor instance.
-        :rtype: GameObjectProperty[_TPropertyValue]
-        """
-        if instance is None:
-            return self
-        return self.get_holder(instance)
+_TFloatValue = float
+_TFloatInput = int | float
 
-    def __set__(self, instance: Component, value: _TPropertyValue) -> None:
-        """Set component property value.
 
-        Uses :class:`GameObjectProperty.value` setter.
+class Float(Property[_TFloatValue, _TFloatInput]):
+    """A float property.
 
-        :param GOTNode[PT, CT, VT] instance: Object instance that has the property.
-        :param T value: A new value of the property.
-        """
-        holder = self.get_holder(instance)
-        holder.set_value(value)
+    :param default: Initial value, defaults to 0.0.
+    :type default: _TFloatInput
+    """
 
-    def __set_name__(self, owner: type, name: str) -> None:
-        """Set name."""
-        self.name = f"_{name}"
+    value_type = _TFloatValue
+    input_type = _TFloatInput
+    lowest = None
+    highest = None
 
-    def get_holder(self, instance: Component) -> PropertyHolder:
-        """Get property value holder at instance."""
-        return getattr(instance, self.name)
+    def __init__(
+        self,
+        default: _TFloatInput = 0.0,
+        lowest: _TFloatInput | None = None,
+        highest: _TFloatInput | None = None,
+    ) -> None:
+        super().__init__(default)
+        self.lowest = lowest
+        self.highest = highest
 
-    def reset_default(self) -> None:
-        """Reset the default value to None."""
-        self.default = None
+    def adapt(self, value: _TFloatInput) -> _TFloatValue:  # noqa: D102
+        return float(self.opt_clamp(float(value)))
+    
+    def opt_clamp(self, value: _TFloatValue) -> _TFloatValue:
+        if self.lowest is None:
+            if self.highest is None:
+                return value
+            return min(value, self.highest)
+        if self.highest is None:
+            return max(value, self.lowest)
+        return pg.math.clamp(value, self.lowest, self.highest)
+    
+
+class Angle(Float):
+    """An angle property.
+
+    Holds angle value in degrees [0.0, 360.0]
+
+    :param default: Initial value, defaults to 0.0.
+    :type default: _TFloatInput
+    """
+
+    value_type = _TFloatValue
+    input_type = _TFloatInput
+
+    def adapt(self, value: _TFloatInput) -> _TFloatValue:
+        value = float(value)
+        if value < 0:
+            return 0.0
+        return value % 360.0
+
+
+_TStringValue = str
+_TStringInput = str | t.Any
+
+
+class String(Property[_TStringValue, _TStringInput]):
+    """An string property.
+
+    :param default: Initial value, defaults to "".
+    :type default: _TStringInput
+    """
+
+    value_type = _TStringValue
+    input_type = _TStringInput
+
+    def __init__(self, default: _TStringInput = "") -> None:
+        super().__init__(default)
+
+    def adapt(self, value: _TStringInput) -> _TStringValue:  # noqa: D102
+        return str(value)
+
+
+_TColorValue = pg.Color
+_TColorInput = pg.Color | tuple[int, int, int, int] | tuple[int, int, int] | int
+
+
+class Color(Property[_TColorValue, _TColorInput]):
+    """A color property.
+
+    :param default: Initial value, defaults to black (`pygame.Color(0, 0, 0, 255)`).
+    :type default: _TColorInput
+    """
+
+    value_type = _TColorValue
+    input_type = _TColorInput
+
+    def __init__(self, default: _TColorInput = 0) -> None:
+        super().__init__(default)
+
+    def adapt(self, value: _TColorInput) -> _TColorValue:  # noqa: D102
+        if isinstance(value, _TColorValue):
+            return value
+        if isinstance(value, int):
+            return pg.Color(value, value, value)
+        return pg.Color(*value)
+
+
+_TFontValue = FontFactory
+_TFontInput = FontFactory | FontAsset | Path | str | None
+
+
+class Font(Property[_TFontValue, _TFontInput]):
+    """A font property.
+
+    :param default: Initial value, defaults to None.
+    :type default: _TFontInput
+    """
+
+    value_type = _TFontValue
+    input_type = _TFontInput
+
+    def __init__(self, default: _TFontInput = None) -> None:
+        super().__init__(default)
+
+    def adapt(self, value: _TFontInput) -> _TFontValue:
+        if value is None:
+            return FontFactory(None)
+        if isinstance(value, Path | str):
+            return FontAsset(value).load()
+        return value

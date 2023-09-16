@@ -17,24 +17,29 @@ class Application(LoggerMixin):
 
     def __init__(
         self,
-        scenes: Mapping[SceneId, Scene],
-        initial_scene_id: str,
+        scenes: Mapping[SceneId, Scene] | None = None,
+        initial_scene_id: SceneId | None = None,
     ) -> None:
-        self._scenes = scenes
-        self._current_scene = self._scenes[initial_scene_id]
+        self._scenes = scenes or {}
+        self._current_scene = self._scenes[initial_scene_id] if scenes else None
         self._running = False
         self._screen: pg.Surface
         self._clock: pg.time.Clock
 
-    def run(self) -> None:
+    def add_scene(self, scene_id, scene):
+        self._scenes[scene_id] = scene
+
+    def run(self, start_scene: SceneId) -> None:
         """Run application."""
-        self._init()
+        self._init(start_scene)
         self._main_loop()
         self._cleanup()
 
-    def _init(self) -> None:
+    def _init(self, start_scene: SceneId) -> None:
         """Initialize application."""
         self.logger.info("Initializing application...")
+        if not self._scenes:
+            raise ValueError("Cannot start application with zero scenes.")
         pg.init()
         self._screen = pg.display.set_mode(
             ctx.settings.screen_size,
@@ -45,6 +50,7 @@ class Application(LoggerMixin):
         ctx.settings.screen_height = self._screen.get_height()
         pg.display.set_caption("Space Ranger")
         self._clock = pg.time.Clock()
+        self._current_scene = self._scenes[start_scene](start_scene)
         self._current_scene.start()
         self._running = True
 

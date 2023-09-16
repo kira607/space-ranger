@@ -1,64 +1,14 @@
-import abc
 import typing as t
 
+import numpy as np
 import pygame as pg
 
 from space_ranger.logging import LoggerMixin
 
-from .property import Property
+_TAnimatedValue = t.TypeVar("_TAnimatedValue")
 
 
-def is_animatable(obj: t.Any) -> bool:
-    """Check if the object is animatable.
-
-    :param Any obj: Object to check
-
-    :return: Whether object is animatable.
-    :rtype: bool
-    """
-    return all(
-        (
-            hasattr(obj, "__animatable__"),
-            obj.__animatable__,
-        ),
-    )
-
-
-class Interpolation(abc.ABC):
-    """Interpolation interface."""
-
-    @classmethod
-    @abc.abstractmethod
-    def __call__(cls, value: float) -> float:
-        """Apply interpolation.
-
-        :param float value: A value to interpolate.
-
-        :return: Interpolated value.
-        :rtype: float
-        """
-        raise NotImplementedError()
-
-
-class LinearInterpolation:
-    """A linear interpolation."""
-
-    @classmethod
-    def __call__(cls, value: float) -> float:
-        """Apply linear interpolation.
-
-        :param float value: A value to interpolate.
-
-        :return: Interpolated value.
-        :rtype: float
-        """
-        return value
-
-
-_TAnimationTarget = t.TypeVar("_TAnimationTarget")
-
-
-class Animation(t.Generic[_TAnimationTarget], LoggerMixin):
+class Animation(t.Generic[_TAnimatedValue], LoggerMixin):
     """Animation.
 
     :param GameObjectProperty[T] source: Game object property to animate.
@@ -75,46 +25,56 @@ class Animation(t.Generic[_TAnimationTarget], LoggerMixin):
 
     def __init__(
         self,
-        source: Property,
-        target: _TAnimationTarget,
+        x: _TAnimatedValue,
+        y: _TAnimatedValue,
+        to_array: t.Callable[[_TAnimatedValue], np.array],
+        from_array: t.Callable[[np.array], _TAnimatedValue],
         duration: int = 0,
-        interpolate: Interpolation = LinearInterpolation,
+        offset: int = 0,
+        interpolate: t.Callable[[float], float] = lambda x: x,
     ) -> None:
-        if not is_animatable(source):
-            raise ValueError(f"Cannot animate {type(source).__name__}")
-        self._prop = source
-        self._source = source.value
-        self._target = target
+        self._x = x
+        self._y = y
+        self._to_array = to_array
+        self._from_array = from_array
         self._duration = max(duration, 0)
-        self._interpolate = interpolate
-        self._progress = 0
+        self._progress = max(offset, 0)
+        self._f = interpolate
+        self._a = to_array(self._x)
+        self._b = to_array(self._y)
+        self._c = self._b - self._a
 
-    def play(self, delta_time: int) -> None:
+    def play(self, delta_time: int, **kwargs) -> _TAnimatedValue:
         """Play the animation.
 
         :param int delta_time: Delta time (in milliseconds).
         """
+        # zero duration animation is instant
+        final_value = self._get_final_value()
+
         if self._duration == 0:
-            self._prop = self._target
-            return
+            return final_value
 
-        self._progress += delta_time
+        self._update_progress(delta_time)
 
+        # force finished animation to return final value
         if self.is_finished:
-            return
+            return final_value
 
-        self._prop = self._source + (self._source - self._target) * pg.math.clamp(
-            self._interpolate(self.progress),
-            0,
-            1,
-        )
+        # change value
+        result = self._play()
+        return self._from_array(result)
+
+    def reset(self) -> None:
+        """Reset animation progress to 0."""
+        self._progress = 0
 
     @property
     def progress(self) -> float:
         """Normilized animation progress value ([0, 1]).
 
         :return: Normalized animation progress value.
-        :rtype: bool
+        :rtype: float
         """
         return pg.math.clamp(self._progress / max(self._duration, 1), 0, 1)
 
@@ -128,3 +88,48 @@ class Animation(t.Generic[_TAnimationTarget], LoggerMixin):
         :rtype: bool
         """
         return self.progress >= 1
+    
+    def _get_final_value(self):
+        return self._y
+
+    def _update_progress(self, delta_time: int) -> None:
+        self._progress = self._progress + delta_time
+
+    def _play(self):
+        return np.rint(self._a + self._c * self._f(self.progress)).astype(int)
+
+
+class ForwardBackAnimation(Animation[_TAnimatedValue]):
+    def __init__(
+        self,
+        source: _TAnimatedValue,
+        target: _TAnimatedValue,
+        to_array: t.Callable[[_TAnimatedValue], np.array],
+        from_array: t.Callable[[np.array], _TAnimatedValue],
+        duration: int = 0,
+        offset: int = 0,
+        interpolate: t.Callable[[float], float] = lambda x: x,
+    ) -> None:
+        super().__init__(source, target, to_array, from_array, duration, offset, interpolate)
+        self._forward = None
+
+    def play(self, delta_time: int, forward: bool = True, **kwargs) -> _TAnimatedValue:
+        if self._forward is not None:
+            if self._forward is not forward:
+                self._progress = pg.math.clamp(self._progress, 0, self._duration)
+        self._forward = forward
+        return super().play(delta_time, **kwargs)
+    
+    @property
+    def is_finished(self) -> bool:
+        if self._forward and self.progress >= 1:
+            return True
+        if not self._forward and self.progress <= 0:
+            return True
+        return False
+    
+    def _get_final_value(self):
+        return self._y if self._forward else self._x
+
+    def _update_progress(self, delta_time: int) -> None:
+        self._progress += delta_time if self._forward else -delta_time

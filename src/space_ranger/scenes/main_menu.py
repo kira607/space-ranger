@@ -54,8 +54,6 @@ class MainMenu(Scene):
         """Startup."""
         super().start()
 
-        b.text_size
-
         self.click_sound = self.click_sound.load()
         self.font = self.font_asset.load(int(ctx.settings.screen_height * 0.027))
         self.button_color = pg.Color(100, 100, 100, 255)

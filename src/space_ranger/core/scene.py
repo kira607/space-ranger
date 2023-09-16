@@ -1,30 +1,38 @@
 from __future__ import annotations
 
 import abc
+import typing as t
+from inspect import getmembers
 
 import pygame as pg
 
 from space_ranger.logging import LoggerMixin
 
+from .common import HasProperties, Observer
 from .game_object import GameObject
-from .has_children import HasChildren
 
 SceneId = str
 
 
-class Scene(HasChildren[GameObject], LoggerMixin, abc.ABC):
+class Scene(HasProperties, LoggerMixin, abc.ABC):
     """An application scene.
 
     Scene consists of game objects.
     """
 
-    _child_node_type = GameObject
+    __game_objects__: list[GameObject]
 
     def __init__(self, scene_id: SceneId) -> None:
         self._id = scene_id
         self._done = False
         self._quit = False
         self._previous: SceneId | None = None
+        self.__game_objects__ = []
+
+    def add_game_object(self, game_object: GameObject) -> GameObject:
+        self.__game_objects__.append(game_object)
+        game_object.__scene__ = self
+        return game_object
 
     @property
     def id(self) -> SceneId:  # noqa: A003
@@ -54,9 +62,15 @@ class Scene(HasChildren[GameObject], LoggerMixin, abc.ABC):
     def start(self) -> None:
         """Do a scene statup."""
         self.logger.info(f"Starting up {self.__class__.__name__} scene...")
-        for obj in self.__children__:
-            self.logger.debug(f"{type(self).__name__} | Building {obj.name} ({type(obj).__name__})")
-            obj.build()
+        for game_object in self.__game_objects__:
+            self.logger.debug(f"{type(self).__name__} | Starting {game_object} ({type(game_object).__name__})")
+            self.logger.debug(
+                f"{type(self).__name__} | {type(game_object).__name__} | Components: {game_object.__components__}",
+            )
+            self.logger.debug(
+                f"{type(self).__name__} | {type(game_object).__name__} | Children: {game_object.__children__}",
+            )
+            game_object.start()
 
     def finish(self) -> None:
         """Do a scene cleanup."""
@@ -68,14 +82,16 @@ class Scene(HasChildren[GameObject], LoggerMixin, abc.ABC):
 
         :param pygame.event.Event event: An event to process.
         """
-        # TODO: how to process events?
+        for obj in self.__game_objects__:
+            if obj.is_enabled:
+                obj.process_event(event)
 
     def update(self, delta_time: int) -> None:
         """Update scene.
 
         :param int delta_time: Delta time (in milliseconds).
         """
-        for obj in self.__children__:
+        for obj in self.__game_objects__:
             if obj.is_enabled:
                 obj.update(delta_time)
 
@@ -84,7 +100,7 @@ class Scene(HasChildren[GameObject], LoggerMixin, abc.ABC):
 
         :param pygame.Surface screen: Target screen.
         """
-        for obj in self.__children__:
+        for obj in self.__game_objects__:
             if obj.is_enabled:
                 obj.draw(screen)
 

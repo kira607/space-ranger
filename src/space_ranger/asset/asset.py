@@ -15,7 +15,6 @@ class Asset(abc.ABC, LoggerMixin, t.Generic[T]):
     Asset properties are readonly.
 
     :param str name: A file name of asset.
-    :param str description: Asset description
     """
 
     sub_dir = ""
@@ -32,9 +31,9 @@ class Asset(abc.ABC, LoggerMixin, t.Generic[T]):
         :return: Asset path
         :rtype: Path
         """
-        return Path(ctx.config.assets_dir, self.sub_dir, self.asset_name)
+        return self._path
 
-    def load(self, force: bool = False, **kwargs) -> T:
+    def load(self, force: bool = False, **kwargs: t.Any) -> T:
         """Load asset.
 
         :param bool, optional force: Ignore if asset is already loaded, defaults to False
@@ -43,9 +42,9 @@ class Asset(abc.ABC, LoggerMixin, t.Generic[T]):
         :rtype: T
         """
         self._kwargs.update(kwargs)
-        if not self.asset or force:
-            self.asset = self._load_asset(**kwargs)
-        return self.asset
+        if not self._asset or force:
+            self._asset = self._load_asset(**kwargs)
+        return self._asset
 
     @abc.abstractmethod
     def _load_asset(self) -> T:
