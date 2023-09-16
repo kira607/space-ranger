@@ -1,6 +1,6 @@
 import pytest
 
-from space_ranger.core.common import HasProperties, Descriptor, Observer
+from space_ranger.core.common import Descriptor, HasProperties, Observer
 
 
 def test_collector_descriptors_inheritance() -> None:

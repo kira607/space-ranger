@@ -88,7 +88,7 @@ class Animation(t.Generic[_TAnimatedValue], LoggerMixin):
         :rtype: bool
         """
         return self.progress >= 1
-    
+
     def _get_final_value(self):
         return self._y
 
@@ -119,7 +119,7 @@ class ForwardBackAnimation(Animation[_TAnimatedValue]):
                 self._progress = pg.math.clamp(self._progress, 0, self._duration)
         self._forward = forward
         return super().play(delta_time, **kwargs)
-    
+
     @property
     def is_finished(self) -> bool:
         if self._forward and self.progress >= 1:
@@ -127,7 +127,7 @@ class ForwardBackAnimation(Animation[_TAnimatedValue]):
         if not self._forward and self.progress <= 0:
             return True
         return False
-    
+
     def _get_final_value(self):
         return self._y if self._forward else self._x
 

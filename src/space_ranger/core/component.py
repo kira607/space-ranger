@@ -116,7 +116,7 @@ class Text(SpriteComponent):
     @property
     def width(self) -> int:
         return self.image.get_width()
-    
+
     @property
     def height(self) -> int:
         return self.image.get_height()

@@ -140,7 +140,6 @@ class GameObject(Observer, HasProperties, LoggerMixin, abc.ABC):
 
 
 class NewGameObject(Observer, HasProperties, pg.sprite.Sprite, LoggerMixin, abc.ABC):
-
     __enabled__ = True
 
     __children__: list[GameObject]
@@ -160,7 +159,7 @@ class NewGameObject(Observer, HasProperties, pg.sprite.Sprite, LoggerMixin, abc.
         self.__children__.append(child)
         child.__parent__ = self
         return child
-    
+
     @property
     def is_enabled(self) -> bool:
         """Get if the GameObject is enabled.

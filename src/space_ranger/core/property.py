@@ -1,7 +1,7 @@
 from __future__ import annotations
-from pathlib import Path
 
 import typing as t
+from pathlib import Path
 
 import pygame as pg
 
@@ -113,7 +113,7 @@ class Int(Property[_TIntValue, _TIntInput]):
 
     def adapt(self, value: _TIntInput) -> _TIntValue:  # noqa: D102
         return int(self.opt_clamp(int(value)))
-    
+
     def opt_clamp(self, value: _TIntValue) -> _TIntValue:
         if self.lowest is None:
             if self.highest is None:
@@ -152,7 +152,7 @@ class Float(Property[_TFloatValue, _TFloatInput]):
 
     def adapt(self, value: _TFloatInput) -> _TFloatValue:  # noqa: D102
         return float(self.opt_clamp(float(value)))
-    
+
     def opt_clamp(self, value: _TFloatValue) -> _TFloatValue:
         if self.lowest is None:
             if self.highest is None:
@@ -161,7 +161,7 @@ class Float(Property[_TFloatValue, _TFloatInput]):
         if self.highest is None:
             return max(value, self.lowest)
         return pg.math.clamp(value, self.lowest, self.highest)
-    
+
 
 class Angle(Float):
     """An angle property.

@@ -31,7 +31,6 @@ def array_to_color(array):
 
 
 class Button(GameObject):
-
     def __init__(self, text: str = "Button") -> None:
         super().__init__()
         self.idle_color = pg.Color(127, 255, 127)
@@ -54,6 +53,7 @@ class Button(GameObject):
     def update(self, delta_time: int) -> None:
         pos = pg.mouse.get_pos()
         self.back.color = self.hover_animation.play(delta_time, self.back.rect.collidepoint(*pos))
+
 
 class Playground(Scene):
     """A main menu state."""

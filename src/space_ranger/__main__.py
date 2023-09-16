@@ -16,7 +16,9 @@ def get_parser() -> argparse.ArgumentParser:
     """Get a cli args parser."""
     parser = argparse.ArgumentParser(description=get_title())
     parser.add_argument("-v", "--version", action="store_true", help="show version and exit")
-    parser.add_argument("-l", "--logging-level", choices=["debug", "info", "warning", "critical"], default="debug", help="logs level")
+    parser.add_argument(
+        "-l", "--logging-level", choices=["debug", "info", "warning", "critical"], default="debug", help="logs level"
+    )
     return parser
 
 
