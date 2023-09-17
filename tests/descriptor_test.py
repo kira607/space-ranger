@@ -1,10 +1,10 @@
 import pytest
 
-from space_ranger.core.common import Descriptor, HasProperties, Observer
+from space_ranger.core.common import Descriptor, Observer, PropertiesObserver
 
 
 def test_collector_descriptors_inheritance() -> None:
-    class A(HasProperties):  # noqa: D101
+    class A(PropertiesObserver):  # noqa: D101
         __children__: list[Descriptor]
         x = Descriptor()
 
@@ -16,7 +16,7 @@ def test_collector_descriptors_inheritance() -> None:
 
 
 def test_per_class_attributes_are_unique() -> None:
-    class A(HasProperties, Observer):  # noqa: D101
+    class A(PropertiesObserver, Observer):  # noqa: D101
         __children__: list[Descriptor]
         x = Descriptor()
 
@@ -38,7 +38,7 @@ def test_per_class_attributes_are_unique() -> None:
 def test_error_when_descriptor_collection_collides() -> None:
     with pytest.raises(RuntimeError):
 
-        class A(HasProperties):  # noqa: D101
+        class A(PropertiesObserver):  # noqa: D101
             __children__: list[Descriptor]
             x = Descriptor()
 
@@ -47,7 +47,7 @@ def test_error_when_descriptor_collection_collides() -> None:
 
 
 def test_descriptor_redifinition():
-    class A(HasProperties, Observer):  # noqa: D101
+    class A(PropertiesObserver, Observer):  # noqa: D101
         __children__: list[Descriptor]
         x = Descriptor()
 

@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import abc
-import typing as t
-from inspect import getmembers
 
 import pygame as pg
 
 from space_ranger.logging import LoggerMixin
 
-from .common import HasProperties, Observer
 from .game_object import GameObject
+from .properties_observer import PropertiesObserver
 
 SceneId = str
 
 
-class Scene(HasProperties, LoggerMixin, abc.ABC):
+class Scene(PropertiesObserver, LoggerMixin, abc.ABC):
     """An application scene.
 
     Scene consists of game objects.
@@ -65,9 +63,6 @@ class Scene(HasProperties, LoggerMixin, abc.ABC):
         for game_object in self.__game_objects__:
             self.logger.debug(f"{type(self).__name__} | Starting {game_object} ({type(game_object).__name__})")
             self.logger.debug(
-                f"{type(self).__name__} | {type(game_object).__name__} | Components: {game_object.__components__}",
-            )
-            self.logger.debug(
                 f"{type(self).__name__} | {type(game_object).__name__} | Children: {game_object.__children__}",
             )
             game_object.start()
@@ -107,3 +102,6 @@ class Scene(HasProperties, LoggerMixin, abc.ABC):
     def get_next(self) -> SceneId:
         """Get a next scene id."""
         return ""
+
+    def _accept_notification(self) -> None:
+        pass
