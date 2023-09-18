@@ -2,7 +2,7 @@ import pygame as pg
 
 from space_ranger.core import GameObject
 from space_ranger.core.animation import HoverAnimation
-from space_ranger.core.property import Bool, Color, Font, Int, String
+from space_ranger.core.property import Color, Font, Int, String
 
 
 class Button(GameObject):
@@ -15,7 +15,6 @@ class Button(GameObject):
     text_color = Color(170)
     text_size = Int(100)
     text_font = Font()
-    is_clicked = Bool(False)
 
     def __init__(
         self,
@@ -67,14 +66,7 @@ class Button(GameObject):
         )
         self.image = back
 
-    def process_event(self, event: pg.event.Event) -> None:
-        if event.type == pg.MOUSEBUTTONDOWN and self.rect.collidepoint(*pg.mouse.get_pos()):
-            self.is_clicked = True
-        else:
-            self.is_clicked = False
-
-    def update(self, delta_time: int) -> None:
-        """Update button."""
+    def _update(self, delta_time: int) -> None:
         self.hover_animation.play(delta_time, self.rect.collidepoint(*pg.mouse.get_pos()))
         if self.is_clicked:
             self.click_animation.play(delta_time, self.is_clicked)
