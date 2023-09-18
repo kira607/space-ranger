@@ -9,17 +9,19 @@ class Checkbox(GameObject):
     """Checkbox."""
 
     is_checked = Bool(False)
-    back_color = Color((0, 0, 0, 50))
+    back_color = Color(170)
     size = Int(50)
 
     def __init__(self) -> None:
         super().__init__()
         self.hover_animation = HoverAnimation(
-            (self, "back_color", Color, self.back_color, Color.adapt((0, 0, 0, 100))),
+            (self, "back_color", Color, self.back_color, Color.adapt(70)),
+            (self, "size", Int, self.size, self.size + 1),
             duration=100,
         )
         self.click_animation = HoverAnimation(
-            (self, "back_color", Color, self.back_color, Color.adapt((0, 0, 0, 150))),
+            (self, "back_color", Color, self.back_color, Color.adapt(50)),
+            (self, "size", Int, self.size, self.size - 1),
             duration=10,
         )
         self._checked_on_previous_frame = False
