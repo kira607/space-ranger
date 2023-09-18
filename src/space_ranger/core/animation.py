@@ -178,6 +178,7 @@ class HoverAnimation(Animation):
         self._hovering = False
 
     def play(self, delta_time: int, hovering: bool = False) -> _TAnimatedValue:
+        """Play animation."""
         hovering_changed = not (self._hovering is hovering)
         self._hovering = hovering
 

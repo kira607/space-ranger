@@ -26,7 +26,8 @@ class Application(LoggerMixin):
         self._screen: pg.Surface
         self._clock: pg.time.Clock
 
-    def add_scene(self, scene_id, scene):
+    def add_scene(self, scene_id: SceneId, scene: Scene) -> None:
+        """Add a scene to the application."""
         self._scenes[scene_id] = scene
 
     def run(self, start_scene: SceneId) -> None:

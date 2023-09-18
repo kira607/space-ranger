@@ -131,10 +131,6 @@ class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
         for child in self.__children__:
             child.draw(screen)
 
-    def _accept_notification(self) -> None:
-        """Accept a notification from a component or property."""
-        self.build()
-
     def add_child(self, child: GameObject) -> GameObject:
         """Add a child game object.
 

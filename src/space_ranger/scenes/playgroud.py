@@ -2,7 +2,7 @@ import pygame as pg
 
 from space_ranger.core import Scene
 from space_ranger.core.scene import SceneId
-from space_ranger.prefabs import Button
+from space_ranger.prefabs import Button, Checkbox
 
 
 class Playground(Scene):
@@ -10,9 +10,10 @@ class Playground(Scene):
 
     def __init__(self, scene_id: SceneId) -> None:
         super().__init__(scene_id)
-        self.text = self.add_game_object(Button(hover_color=(127, 255, 127)))
-        self.text.transform.x = 200
-        self.text.transform.y = 200
+        self.button = self.add_game_object(Button(hover_color=(127, 255, 127)))
+        self.button.set_transform(200, 200)
+        self.checkbox = self.add_game_object(Checkbox())
+        self.checkbox.set_transform(300, 400)
 
     def draw(self, screen: pg.Surface) -> None:
         """Draw scene on a given screen.
