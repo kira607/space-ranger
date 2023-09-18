@@ -28,6 +28,14 @@ class Scene(PropertiesObserver, LoggerMixin, abc.ABC):
         self.__game_objects__ = []
 
     def add_game_object(self, game_object: GameObject) -> GameObject:
+        """Add a game object to a scene.
+
+        :param game_object: A game object to add to the scene.
+        :type game_object: GameObject
+
+        :return: The game object added.
+        :rtype: GameObject
+        """
         self.__game_objects__.append(game_object)
         game_object.__scene__ = self
         return game_object
