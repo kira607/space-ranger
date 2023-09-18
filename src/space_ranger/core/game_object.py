@@ -8,7 +8,7 @@ import pygame as pg
 from space_ranger.logging import LoggerMixin
 
 from .properties_observer import PropertiesObserver
-from .property import Angle, Float
+from .property import Angle, Bool, Float
 
 if t.TYPE_CHECKING:
     from .scene import Scene
@@ -41,6 +41,7 @@ class Transform(PropertiesObserver):
         self.game_object._accept_notification()
 
     def __str__(self) -> str:
+        """Get string representation of Transform."""
         return f"{self.__class__.__name__}({self.game_object}, [{self.x}, {self.y}, {self.r}])"
 
 
@@ -61,7 +62,10 @@ class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
 
     transform: Transform
 
-    def __new__(cls: type[GameObject], *args: t.Any, **kwargs: t.Any) -> GameObject:
+    is_hovered = Bool(False)
+    is_clicked = Bool(False)
+
+    def __new__(cls: type[GameObject], *args: t.Any, **kwargs: t.Any) -> GameObject:  # noqa: D102
         obj = super().__new__(cls)
         obj.__children__ = []
         obj.__parent__ = None
@@ -90,11 +94,29 @@ class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
 
     def process_event(self, event: pg.event.Event) -> None:
         """Process pygame event."""
+        self.is_hovered = self.rect.collidepoint(*pg.mouse.get_pos())
+
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and self.is_hovered:
+            self.is_clicked = True
+        if event.type == pg.MOUSEBUTTONUP and event.button == 1:
+            self.is_clicked = False
+
+        # dragging
+        # if all((event.type == pg.MOUSEMOTION, self.is_clicked)):
+        #     self.transform.x, self.transform.y = self.transform.x + event.rel[0], self.transform.y + event.rel[1]
+
+        self._process_event(event)
+
+    def _process_event(self, event: pg.event.Event) -> None:
+        """Process pygame event."""
         pass
 
     def update(self, delta_time: int) -> None:
         """Update game object."""
-        # play animations
+        self._update(delta_time)
+
+    def _update(self, delta_time: int) -> None:
+        """Update game object."""
         pass
 
     def draw(self, screen: pg.Surface) -> None:
@@ -114,9 +136,43 @@ class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
         self.build()
 
     def add_child(self, child: GameObject) -> GameObject:
+        """Add a child game object.
+
+        :param child: Child game object to add.
+        :type child: GameObject
+
+        :return: The child.
+        :rtype: GameObject
+        """
         self.__children__.append(child)
         child.__parent__ = self
         return child
+
+    def set_transform(
+        self,
+        x: Float.InputType | None = None,
+        y: Float.InputType | None = None,
+        r: Angle.InputType | None = None,
+    ) -> None:
+        """Set game object transform.
+
+        :param x: X coordinate, defaults to None
+        :type x: Float.InputType | None, optional
+        :param y: Y Coordinate, defaults to None
+        :type y: Float.InputType | None, optional
+        :param r: Rotation, defaults to None
+        :type r: Angle.InputType | None, optional
+        """
+        if x is not None:
+            self.transform.x = x
+        if y is not None:
+            self.transform.y = y
+        if r is not None:
+            self.transform.r = r
+
+    def _accept_notification(self) -> None:
+        """Accept a notification from a component or property."""
+        self.build()
 
     @property
     def is_enabled(self) -> bool:
