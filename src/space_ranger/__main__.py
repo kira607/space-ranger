@@ -23,6 +23,12 @@ def get_parser() -> argparse.ArgumentParser:
         default="debug",
         help="logs level",
     )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action="store_true",
+        help="run application in debug mode",
+    )
     return parser
 
 
@@ -36,11 +42,12 @@ def main() -> None:
         exit(0)
 
     ctx.config.logging_level = args.logging_level.upper()
-
+    ctx.config.debug = args.debug
     init_logging(level=ctx.config.logging_level)
 
     app = Application()
-    app.add_scene("playground", Playground)
+    playground = Playground("playground")
+    app.register_scene(playground)
     app.run("playground")
 
 

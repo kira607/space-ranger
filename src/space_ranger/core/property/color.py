@@ -35,7 +35,7 @@ class Color(Property[_TValue, _TInput]):
         if isinstance(value, cls.ValueType):
             return value
         if isinstance(value, int):
-            return pg.Color(value, value, value)
+            return pg.Color(value, value, value, 255)
         return pg.Color(*value)
 
     @classmethod

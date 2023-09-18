@@ -31,12 +31,15 @@ class Button(GameObject):
         self.text_color = text_color
         self.text_size = text_size
         self.text_font = text_font
+        self.hover_color = hover_color
+
+    def _start(self) -> None:
 
         tmp = self.text_font(self.text_size).render(self.text, 0, self.color)
         self.width = tmp.get_width() * 1.3
         self.height = tmp.get_height() * 1.3
 
-        hover_color = Color.adapt(hover_color)
+        hover_color = Color.adapt(self.hover_color)
 
         self.hover_animation = HoverAnimation(
             (self, "color", Color, self.color, Color.adapt(70)),

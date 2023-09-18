@@ -1,5 +1,3 @@
-from typing import Mapping
-
 import pygame as pg
 
 from space_ranger import ctx
@@ -15,28 +13,24 @@ class Application(LoggerMixin):
     :param str initial_state_id: Id of an initial state.
     """
 
-    def __init__(
-        self,
-        scenes: Mapping[SceneId, Scene] | None = None,
-        initial_scene_id: SceneId | None = None,
-    ) -> None:
-        self._scenes = scenes or {}
-        self._current_scene = self._scenes[initial_scene_id] if scenes else None
+    def __init__(self) -> None:
+        self._scenes = {}
         self._running = False
         self._screen: pg.Surface
         self._clock: pg.time.Clock
+        self._current_scene: Scene
 
-    def add_scene(self, scene_id: SceneId, scene: Scene) -> None:
+    def register_scene(self, scene: Scene) -> None:
         """Add a scene to the application."""
-        self._scenes[scene_id] = scene
+        self._scenes[scene.id] = scene
 
-    def run(self, start_scene: SceneId) -> None:
+    def run(self, start_scene_id: SceneId) -> None:
         """Run application."""
-        self._init(start_scene)
+        self._init(start_scene_id)
         self._main_loop()
         self._cleanup()
 
-    def _init(self, start_scene: SceneId) -> None:
+    def _init(self, start_scene_id: SceneId) -> None:
         """Initialize application."""
         self.logger.info("Initializing application...")
         if not self._scenes:
@@ -51,7 +45,7 @@ class Application(LoggerMixin):
         ctx.settings.screen_height = self._screen.get_height()
         pg.display.set_caption("Space Ranger")
         self._clock = pg.time.Clock()
-        self._current_scene = self._scenes[start_scene](start_scene)
+        self._current_scene = self._scenes[start_scene_id]
         self._current_scene.start()
         self._running = True
 
@@ -94,10 +88,10 @@ class Application(LoggerMixin):
 
     def _get_next_scene(self) -> Scene:
         """Get a next state."""
-        previous_state_id = self._current_scene.id
-        next_state_id = self._current_scene.get_next()
+        previous_scene_id = self._current_scene.id
+        next_scene_id = self._current_scene.get_next()
         self._current_scene.finish()
-        next_state = self._scenes[next_state_id]
-        next_state.previous = previous_state_id
-        next_state.start()
-        return next_state
+        next_scene = self._scenes[next_scene_id]
+        next_scene.previous = previous_scene_id
+        next_scene.start()
+        return next_scene

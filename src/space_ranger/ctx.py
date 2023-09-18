@@ -31,6 +31,7 @@ class Config:
     """Application configuration."""
 
     logging_level: str = "CRITICAL"
+    debug: bool = False
     assets_dir = Path(os.path.dirname(__file__), "assets")
 
 

@@ -5,6 +5,7 @@ import typing as t
 
 import pygame as pg
 
+from space_ranger import ctx
 from space_ranger.logging import LoggerMixin
 
 from .properties_observer import PropertiesObserver
@@ -12,37 +13,6 @@ from .property import Angle, Bool, Float
 
 if t.TYPE_CHECKING:
     from .scene import Scene
-
-
-class Transform(PropertiesObserver):
-    """Game object transform."""
-
-    x = Float()
-    y = Float()
-    r = Angle()
-
-    game_object: GameObject
-
-    @classmethod
-    def from_vector(cls, vector: pg.Vector3) -> Transform:
-        """Create a new Transform from `pygame.Vector3`."""
-        return cls(vector.x, vector.y, vector.z)
-
-    @property
-    def vector(self) -> pg.Vector3:
-        """Get transform as a vector."""
-        return pg.Vector3(self.x, self.y, self.r)
-
-    def __add__(self, other: Transform) -> Transform:
-        """Add two trasform objects."""
-        return Transform.from_vector(self.vector + other.vector)
-
-    def _accept_notification(self) -> None:
-        self.game_object._accept_notification()
-
-    def __str__(self) -> str:
-        """Get string representation of Transform."""
-        return f"{self.__class__.__name__}({self.game_object}, [{self.x}, {self.y}, {self.r}])"
 
 
 class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
@@ -54,39 +24,49 @@ class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
     its GameObject which triggers a GameObject.accept_notification().
     """
 
-    __enabled__ = True
+    __enabled__ = False
 
-    __children__: list[GameObject]
-    __parent__: GameObject | None
-    __scene__: Scene | None
+    _name: str
+    _children: list[GameObject]
+    _parent: GameObject | None
+    _scene: Scene | None
 
-    transform: Transform
+    x = Float()
+    y = Float()
+    r = Angle()
 
     is_hovered = Bool(False)
     is_clicked = Bool(False)
 
     def __new__(cls: type[GameObject], *args: t.Any, **kwargs: t.Any) -> GameObject:  # noqa: D102
         obj = super().__new__(cls)
-        obj.__children__ = []
-        obj.__parent__ = None
-        obj.__scene__ = None
-        obj.transform = Transform()
-        obj.transform.game_object = obj
+        obj._children = []
+        obj._parent = None
+        obj._scene = None
         return obj
 
     def start(self) -> None:
         """Start game object."""
+        self.logger.debug(f"{self._scene.id} | Building {self._name}")
         self.build()
+        self.enable()
+        self._start()
+
+    def _start(self) -> None:
+        pass
 
     def build(self) -> None:
         """Build game object."""
         self._build()
-        self.image = pg.transform.rotate(self.image, self.transform.r)
+        self.image = pg.transform.rotate(self.image, self.r)
         self.rect = self.image.get_rect()
-        self.rect.center = self.transform.x, self.transform.y
-        # reposition children
-        for child in self.__children__:
-            child.transform = self.transform + child.transform
+        self.rect.center = (self.x, self.y)
+        self.mask = pg.mask.from_surface(self.image)
+        # build and reposition children
+        for child in self._children:
+            child.build()
+            child.rect.center = (self.x + child.x, self.y + child.y)
+            child.r += self.r
 
     @abc.abstractmethod
     def _build(self) -> None:
@@ -103,7 +83,7 @@ class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
 
         # dragging
         # if all((event.type == pg.MOUSEMOTION, self.is_clicked)):
-        #     self.transform.x, self.transform.y = self.transform.x + event.rel[0], self.transform.y + event.rel[1]
+        #     self.rect.center = self.rect.center.x + event.rel[0], self.rect.center.y + event.rel[1]
 
         self._process_event(event)
 
@@ -124,11 +104,12 @@ class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
 
         :param pg.Surface screen: Target screen.
         """
-        # draw drawable components
         screen.blit(self.image, self.rect)
+        if ctx.config.debug:
+            pg.draw.rect(screen, (255, 0, 0), self.rect, 1)
 
         # draw child game objects
-        for child in self.__children__:
+        for child in self._children:
             child.draw(screen)
 
     def add_child(self, child: GameObject) -> GameObject:
@@ -140,8 +121,8 @@ class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
         :return: The child.
         :rtype: GameObject
         """
-        self.__children__.append(child)
-        child.__parent__ = self
+        self._children.append(child)
+        child._parent = self
         return child
 
     def set_transform(
@@ -160,15 +141,15 @@ class GameObject(PropertiesObserver, pg.sprite.Sprite, LoggerMixin, abc.ABC):
         :type r: Angle.InputType | None, optional
         """
         if x is not None:
-            self.transform.x = x
+            self.x = x
         if y is not None:
-            self.transform.y = y
+            self.y = y
         if r is not None:
-            self.transform.r = r
+            self.r = r
 
     def _accept_notification(self) -> None:
-        """Accept a notification from a component or property."""
-        self.build()
+        if self.is_enabled:
+            self.build()
 
     @property
     def is_enabled(self) -> bool:
