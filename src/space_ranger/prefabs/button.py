@@ -33,8 +33,9 @@ class Button(GameObject):
         self.text_font = text_font
         self.hover_color = hover_color
 
-    def _start(self) -> None:
+        pg.draw.rect()
 
+    def _start(self) -> None:
         tmp = self.text_font(self.text_size).render(self.text, 0, self.color)
         self.width = tmp.get_width() * 1.3
         self.height = tmp.get_height() * 1.3
@@ -46,7 +47,7 @@ class Button(GameObject):
             (self, "width", Int, self.width, self.width + 3),
             (self, "height", Int, self.height, self.height + 3),
             (self, "text_color", Color, self.text_color, hover_color),
-            duration=100,
+            duration=5000,
         )
         self.click_animation = HoverAnimation(
             (self, "color", Color, self.color, Color.adapt(50)),

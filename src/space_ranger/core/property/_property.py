@@ -5,31 +5,66 @@ import typing as t
 
 import numpy as np
 
+from space_ranger.core.common import MISSING
+
 if t.TYPE_CHECKING:
-    from space_ranger.core.properties_observer import PropertiesObserver
+    from ._properties_observer import PropertiesObserver
 
 _TPropertyValue = t.TypeVar("_TPropertyValue")
 _TPropertyInput = t.TypeVar("_TPropertyInput")
 
 
 class Property(t.Generic[_TPropertyValue, _TPropertyInput], abc.ABC):
-    """A property.
+    """A base property class.
 
     This is a base class to be used to create properties.
 
-    Properties are connected to classes of type :class:`Observer`
+    Properties are connected to classes of type :class:`PropertiesObserver`
     and should be used only within them.
+
+    Property is used to quickly create descriptors.
+
+    For example in this case::
+
+        class MyClass:
+            def __init__(self, x = 10: int) -> None:
+                self._x = x
+
+            @property
+            def x(self) -> int:
+                return self._x
+
+            @x.setter
+            def x(self, value: int) -> None:
+                self._x = int(x)
+
+    An integer property could be used to make things simpler::
+
+        class MyClass:
+            x = Int(10, track=False)
+
+    :var public_name: Public name of the property.
+    :var name: Protected name of the property. Same as public but prefixed with "_".
+    :var _TPropertyInput default: Default value of the property.
+    :var bool readonly: Is property is readonly.
+    :var bool track: Is property tracked by instance.
 
     :param default: Default value of the property.
     :type default: _TPropertyInput
+    :param readonly: Make a property readonly. Such property will raise an error
+      if it's assignment is attempted.
+    :type readonly: bool
+    :param track: Make property notify its owner instance to accept a notification
+      on change via `_accept_notification()`.
+    :type track: bool
     """
 
-    __animatable__ = False
-
-    def __init__(self, default: _TPropertyInput) -> None:
+    def __init__(self, default: _TPropertyInput = MISSING, readonly: bool = False, track: bool = True) -> None:
         self.public_name: str
         self.name: str
-        self.default = self.adapt(default)
+        self.readonly = readonly
+        self.track = track
+        self.default = self.adapt(default) if default is not MISSING else default
 
     def __get__(
         self,
@@ -50,22 +85,33 @@ class Property(t.Generic[_TPropertyValue, _TPropertyInput], abc.ABC):
         """
         if instance is None:
             return self
-        return getattr(instance, self.name, None)
+        return getattr(instance, self.name)
 
     def __set__(self, instance: PropertiesObserver | None, value: _TPropertyValue) -> None:
         """Set value.
 
         This will notify parent :class:`Observer` instance
-        using `instance.accept_notification()`.
+        using `instance._accept_notification()`.
 
         :param instance: Instance that has the property.
         :type instance: PropertiesObserver
         :param value: A new value of the attribute.
         :type value: _TPropertyValue
         """
+        if self.readonly:
+            raise RuntimeError(f"{type(instance).__name__}.{self.public_name} is readonly!")
+
+        # this makes properties usable with dataclasses, like this:
+        #    x = dataclasses.field(default=Int(10))
+        if value is self:
+            return
+
         new_value = self.adapt(value)
         setattr(instance, self.name, new_value)
-        instance._accept_notification()
+
+        # notify instance about change
+        if self.track:
+            instance._accept_notification()
 
     def __set_name__(self, owner: type[PropertiesObserver], name: str) -> None:
         """Set property name.
@@ -74,7 +120,7 @@ class Property(t.Generic[_TPropertyValue, _TPropertyInput], abc.ABC):
         which is later accessed using this property descriptor.
 
         Neither protected nor private properties names
-        are not allowed. This means that property name should
+        are not allowed. This means that property name must
         not start with "_".
 
         :param type owner: PropertiesObserver class.
@@ -106,7 +152,8 @@ class Property(t.Generic[_TPropertyValue, _TPropertyInput], abc.ABC):
         :param instance: A :class:`PropertiesObserver` instance.
         :type instance: PropertiesObserver
         """
-        setattr(instance, self.name, self.default)
+        if self.default is not MISSING:
+            setattr(instance, self.name, self.default)
 
     @classmethod
     def adapt(cls, value: _TPropertyInput) -> _TPropertyValue:

@@ -2,7 +2,7 @@ import typing as t
 
 import numpy as np
 
-from ._base import Property
+from ._property import Property
 
 _TValue: t.TypeAlias = str
 _TInput: t.TypeAlias = str | bytes | t.Any

@@ -2,17 +2,14 @@ import abc
 import typing as t
 from pathlib import Path
 
-from space_ranger import ctx
-from space_ranger.logging import LoggerMixin
+from space_ranger.core import ctx
+from space_ranger.core.logging import LoggerMixin
 
 T = t.TypeVar("T")
 
 
 class Asset(abc.ABC, LoggerMixin, t.Generic[T]):
     """A base asset class.
-
-    This is a descriptor abstracting loading assets.
-    Asset properties are readonly.
 
     :param str name: A file name of asset.
     """

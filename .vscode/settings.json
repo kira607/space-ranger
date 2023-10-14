@@ -1,6 +1,5 @@
 {
     "python.analysis.typeCheckingMode": "off",
-    // "python.formatting.provider": "black",
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "[python]": {
@@ -18,4 +17,7 @@
     "python.analysis.extraPaths": [
         "./src"
     ],
+    "files.exclude": {
+        "**/__pycache__": true
+    },
 }

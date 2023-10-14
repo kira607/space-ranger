@@ -1,9 +1,11 @@
 import argparse
+import os
 import sys
+from pathlib import Path
 
-from space_ranger import __version__, ctx
-from space_ranger.application import Application
-from space_ranger.logging import init_logging
+from space_ranger import __version__
+from space_ranger.core import Application, ctx
+from space_ranger.core.logging import init_logging
 from space_ranger.scenes import Playground
 
 
@@ -42,12 +44,14 @@ def main() -> None:
         exit(0)
 
     ctx.config.logging_level = args.logging_level.upper()
-    ctx.config.debug = args.debug
     init_logging(level=ctx.config.logging_level)
+    ctx.config.debug = args.debug
+    ctx.config.assets_dir = Path(os.path.dirname(__file__), "assets")
+    ctx.screen.width = 1920
+    ctx.screen.height = 1080
 
-    app = Application()
-    playground = Playground("playground")
-    app.register_scene(playground)
+    app = Application(get_title())
+    app.register_scene(Playground("playground"))
     app.run("playground")
 
 

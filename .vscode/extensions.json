@@ -5,19 +5,17 @@
     // List of extensions which should be recommended for users of this workspace.
     "recommendations": [
             // python
+            "ms-python.python",
             "ms-python.black-formatter",
             "ms-python.flake8",
             "ms-python.isort",
             "ms-python.vscode-pylance",
-            "ms-python.python",
             "ms-python.mypy-type-checker",
-            "njpwerner.autodocstring",
             // syntax help
+            "njpwerner.autodocstring",
             "tamasfe.even-better-toml",
-            "tommorris.mako",
             // misc
             "yzhang.markdown-all-in-one",
-            "techer.open-in-browser",
             // theme
             "jolaleye.horizon-theme-vscode",
     ],

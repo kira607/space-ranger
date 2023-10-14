@@ -12,7 +12,15 @@ class Checkbox(GameObject):
     back_color = Color(170)
     size = Int(50)
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        is_checked: Bool.InputType = False,
+        back_color: Color.InputType = 170,
+        size: Int.InputType = 50,
+    ) -> None:
+        self.is_checked = is_checked
+        self.back_color = back_color
+        self.size = size
         super().__init__()
         self.hover_animation = HoverAnimation(
             (self, "back_color", Color, self.back_color, Color.adapt(70)),

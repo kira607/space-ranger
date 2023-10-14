@@ -3,7 +3,7 @@ import typing as t
 import numpy as np
 import pygame as pg
 
-from ._base import Property
+from ._property import Property
 
 _TValue: t.TypeAlias = pg.Color
 _TInput: t.TypeAlias = pg.Color | tuple[int, int, int, int] | tuple[int, int, int] | int

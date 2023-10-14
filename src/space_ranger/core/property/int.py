@@ -3,7 +3,7 @@ import typing as t
 import numpy as np
 import pygame as pg
 
-from ._base import Property
+from ._property import Property
 
 _TValue: t.TypeAlias = int
 _TInput: t.TypeAlias = int | float

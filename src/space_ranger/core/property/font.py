@@ -3,9 +3,9 @@ from pathlib import Path
 
 import numpy as np
 
-from space_ranger.asset.font_asset import FontAsset, FontFactory
+from space_ranger.core.asset import FontAsset, FontFactory
 
-from ._base import Property
+from ._property import Property
 
 _TValue: t.TypeAlias = FontFactory
 _TInput: t.TypeAlias = FontFactory | FontAsset | Path | str | None

@@ -5,15 +5,15 @@ import pygame as pg
 
 from ._property import Property
 
-_TValue: t.TypeAlias = float
-_TInput: t.TypeAlias = int | float
+_TValue: t.TypeAlias = pg.math.Vector2
+_TInput: t.TypeAlias = pg.math.Vector2, tuple[int | float, int | float]
 
 
-class Float(Property[_TValue, _TInput]):
-    """A float property.
+class Vector2(Property[_TValue, _TInput]):
+    """A vector2 property.
 
-    :param default: Initial value, defaults to 0.0.
-    :type default: _TFloatInput
+    :param default: Initial value, defaults to (0, 0).
+    :type default: _TIntInput
     """
 
     ValueType: t.TypeAlias = _TValue
@@ -21,11 +21,9 @@ class Float(Property[_TValue, _TInput]):
 
     def __init__(
         self,
-        default: InputType = 0.0,
-        readonly: bool = False,
-        track: bool = True,
+        default: InputType = (0, 0),
     ) -> None:
-        super().__init__(default, readonly, track)
+        super().__init__(default)
 
     @classmethod
     def adapt(cls, value: InputType) -> ValueType:
@@ -37,14 +35,10 @@ class Float(Property[_TValue, _TInput]):
         :return: Value of correct type.
         :rtype: ValueType
         """
-        value = float(value)
-        if cls.lowest is None:
-            if cls.highest is None:
-                return value
-            return min(value, cls.highest)
-        if cls.highest is None:
-            return max(value, cls.lowest)
-        return float(pg.math.clamp(value, cls.lowest, cls.highest))
+        if isinstance(value, pg.Vector2):
+            return value
+        if isinstance(value, tuple) and len(value) == 2:
+            return pg.Vector2(value[0], value[1])
 
     @classmethod
     def to_array(cls, value: ValueType) -> np.ndarray:

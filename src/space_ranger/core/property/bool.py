@@ -2,7 +2,7 @@ import typing as t
 
 import numpy as np
 
-from ._base import Property
+from ._property import Property
 
 _TValue: t.TypeAlias = bool
 _TInput: t.TypeAlias = t.Any

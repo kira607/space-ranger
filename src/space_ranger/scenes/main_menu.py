@@ -4,7 +4,7 @@ import pygame as pg
 
 from space_ranger import ctx
 from space_ranger.asset import FontAsset, SoundAsset
-from space_ranger.core import Scene, SceneId
+from space_ranger.core import Scene, str
 from space_ranger.ui import Button
 
 
@@ -19,7 +19,7 @@ class MenuState(Enum):
 class MainMenu(Scene):
     """A main menu state."""
 
-    def __init__(self, state_id: SceneId) -> None:
+    def __init__(self, state_id: str) -> None:
         super().__init__(state_id)
 
         self.click_sound_asset = SoundAsset("click2.wav")

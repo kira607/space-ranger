@@ -10,8 +10,8 @@
             "request": "launch",
             "module": "space_ranger",
             "console": "integratedTerminal",
-            "justMyCode": true,
-            "args": ["-l", "debug"],
+            "justMyCode": false,
+            "args": ["-l", "debug", "-d"],
         },
     ]
 }

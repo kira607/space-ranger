@@ -3,9 +3,8 @@ import typing as t
 import numpy as np
 import pygame as pg
 
-from space_ranger.logging import LoggerMixin
-
 from .game_object import GameObject
+from .logging import LoggerMixin
 from .property import Property
 
 _TAnimatedValue = t.TypeVar("_TAnimatedValue")
