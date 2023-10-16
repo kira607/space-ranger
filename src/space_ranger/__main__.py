@@ -1,7 +1,11 @@
 import argparse
+import cProfile
 import os
+import pstats
 import sys
+from datetime import datetime
 from pathlib import Path
+import uuid
 
 from space_ranger import __version__
 from space_ranger.core import Application, ctx
@@ -52,7 +56,17 @@ def main() -> None:
 
     app = Application(get_title())
     app.register_scene(Playground("playground"))
-    app.run("playground")
+
+    with cProfile.Profile() as pr:
+        app.run("playground")
+
+    stats = pstats.Stats(pr)
+    stats.sort_stats(pstats.SortKey.TIME)
+    stats.print_stats()
+    profiling_resutls_path = f"logs/profile-{uuid.uuid4()}.prof"
+    stats.dump_stats(filename=profiling_resutls_path)
+    import logging
+    logging.info(f"profiling results writtend in: {profiling_resutls_path}")
 
 
 if __name__ == "__main__":

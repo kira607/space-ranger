@@ -1,11 +1,9 @@
-import os
-from pathlib import Path
-
 import pygame as pg
 
 from ._ctx import ctx
 from .logging import LoggerMixin
 from .scene import Scene
+from .utils import get_text_surface
 
 
 class Application(LoggerMixin):
@@ -31,7 +29,7 @@ class Application(LoggerMixin):
         pg.display.set_caption(self._title)
 
         self._clock = pg.time.Clock()
-        self._debug_font = ctx.get_debug_font()
+        self._debug_font = ctx.debug_text_font
 
         self._current_scene: Scene
 
@@ -41,9 +39,14 @@ class Application(LoggerMixin):
 
     def run(self, start_scene_id: str) -> None:
         """Run application."""
-        self._init(start_scene_id)
-        self._main_loop()
-        self._cleanup()
+        try:
+            self._init(start_scene_id)
+            self._main_loop()
+        except BaseException as e:
+            self.logger.exception(f"Unhandled exception {e}:")
+            self.logger.critical("Application has stopped because of an unhandled exception")
+        finally:
+            self._cleanup()
 
     def _init(self, start_scene_id: str) -> None:
         """Initialize application."""
@@ -68,6 +71,9 @@ class Application(LoggerMixin):
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self._running = False
+            if event.type == pg.KEYDOWN and event.key == pg.K_F3:
+                self.logger.info("Switching to debug mode")
+                ctx.config.debug = not ctx.config.debug
             self._current_scene.process_event(event)
 
     def _update(self, delta_time: int) -> None:
@@ -90,33 +96,16 @@ class Application(LoggerMixin):
 
     def _draw_debug_info(self) -> None:
         # draw fps
-        fps_image = self._debug_font.render(
+        debug_surface = get_text_surface(
             f"FPS: {round(self._clock.get_fps(), 2)}",
-            True,
-            (0, 255, 0),
-        )
-        self._screen.blit(
-            fps_image,
-            (0, 0),
-        )
-        scene_image = self._debug_font.render(
             f"Scene: {self._current_scene.id}",
-            True,
-            (0, 255, 0),
+            f"Screen size: {ctx.screen.width}:{ctx.screen.height}",
+            font=ctx.debug_text_font,
+            color=ctx.debug_text_color,
+            background=ctx.debug_text_background,
+            antialias=True,
         )
-        self._screen.blit(
-            scene_image,
-            (0, fps_image.get_height()),
-        )
-        # camera_zoom_image = self._debug_font.render(
-        #     f"Camera zoom: {self._current_scene.camera.zoom}",
-        #     True,
-        #     (0, 255, 0),
-        # )
-        # self._screen.blit(
-        #     camera_zoom_image,
-        #     (0, fps_image.get_height() + scene_image.get_height()),
-        # )
+        self._screen.blit(debug_surface, (0, 0))
 
     def _cleanup(self) -> None:
         """Cleanup before quitting application."""

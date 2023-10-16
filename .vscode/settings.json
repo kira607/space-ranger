@@ -3,8 +3,10 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true,
     },
+    "black-formatter.args": ["--config", "pyproject.toml"],
     "flake8.args": [
         "--config=setup.cfg",
     ],
