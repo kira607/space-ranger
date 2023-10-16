@@ -1,9 +1,11 @@
-import pygame as pg
 import typing as t
+
+import pygame as pg
 
 type ColorType = pg.color.Color | tuple[int, int, int] | tuple[int, int, int, int] | str
 type Bool = bool | t.Literal[0, 1]
 type Alignment = t.Literal["left", "center", "right"]
+
 
 def get_text_surface(
     *lines: str,
@@ -33,10 +35,14 @@ def get_text_surface(
     prev_height = 0
     for line_surface in lines_surfaces:
         match alignment:
-            case "left": x = 0
-            case "center": x = width // 2 - line_surface.get_width() // 2
-            case "right": x = width - line_surface.get_width()
-            case _: raise ValueError(f"Invalid alignment value: {alignment}")
+            case "left":
+                x = 0
+            case "center":
+                x = width // 2 - line_surface.get_width() // 2
+            case "right":
+                x = width - line_surface.get_width()
+            case _:
+                raise ValueError(f"Invalid alignment value: {alignment}")
         result_surface.blit(line_surface, (x, prev_height))
         prev_height += line_surface.get_height()
     return result_surface

@@ -39,6 +39,7 @@ class Vector2(Property[_TValue, _TInput]):
             return value
         if isinstance(value, tuple) and len(value) == 2:
             return pg.Vector2(value[0], value[1])
+        return None
 
     @classmethod
     def to_array(cls, value: ValueType) -> np.ndarray:

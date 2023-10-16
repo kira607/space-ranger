@@ -104,6 +104,7 @@ class Thing(pg.sprite.Sprite):
         self.build()
 
     def build(self) -> None:
+        """Build a thing."""
         self._build_image()
         self.image = pg.transform.rotate(self.image, self.rotation)
         self.rect = self.image.get_rect()
@@ -158,6 +159,7 @@ class Player(Thing):
         self.rotation = -angle
 
     def update(self, delta_time: int) -> None:
+        """Update player."""
         self._input()
         self.position += self.direction * self.speed
         self._rotate()
@@ -179,6 +181,7 @@ class Player(Thing):
 
 
 class RectSprite(Thing):
+    """Rect sprite."""
 
     def __init__(self) -> None:
         self.width = 200
@@ -272,7 +275,9 @@ class Playground(Scene):
         lines.append(f"    center: {self.camera._vscreen_center}")
         lines.append(f"    size: {self.camera._vscreen_size}")
         lines.append(f"    offset: {self.camera._offset}")
-        lines.append(f"    zoom [{self.camera._min_zoom}, {self.camera._max_zoom}]: {round(self.camera._zoom_scale, 3)}")
+        lines.append(
+            f"    zoom [{self.camera._min_zoom}, {self.camera._max_zoom}]: {round(self.camera._zoom_scale, 3)}"
+        )
         debug_surface = get_text_surface(
             *lines,
             font=ctx.debug_text_font,

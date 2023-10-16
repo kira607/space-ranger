@@ -1,19 +1,19 @@
 default_language_version:
-    python: python3.10
+    python: python3.12
 repos:
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.9.1
     hooks:
       - id: black
         args: ["src", "tests"]
-        language_version: python3.10
+        language_version: python3.12
   - repo: https://github.com/pycqa/isort
     rev: 5.12.0
     hooks:
       - id: isort
         args: [--profile, black, --filter-files]
   - repo: https://github.com/pycqa/flake8
-    rev: '6.0.0'
+    rev: '6.1.0'
     hooks:
       - id: flake8
         args: [--config=setup.cfg, src, tests]

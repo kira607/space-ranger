@@ -64,13 +64,13 @@ class ApplicationContext:
         if cls._debug_text_font is None:
             cls._debug_text_font = pg.font.Font(Path(cls.config.builtin_assets_dir, "fonts", "JetBrainsMono-Thin.ttf"))
         return cls._debug_text_font
-    
+
     @classmethod
     @property
     def debug_text_color(cls) -> pg.Color:
         """Get a text color for debug labels."""
         return cls._debug_text_color
-    
+
     @classmethod
     @property
     def debug_text_background(cls) -> pg.Color:

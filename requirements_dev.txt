@@ -9,7 +9,6 @@ flake8-annotations
 flake8-broken-line
 flake8-bugbear
 flake8-builtins
-flake8-commas
 flake8-comprehensions
 flake8-docstrings
 flake8-eradicate
@@ -35,3 +34,4 @@ mypy
 pep8-naming
 tox
 pre-commit
+snakeviz

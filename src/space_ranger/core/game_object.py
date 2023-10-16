@@ -5,7 +5,6 @@ import typing as t
 
 import pygame as pg
 
-from ._ctx import ctx
 from .logging import LoggerMixin
 from .property import PropertiesObserver
 

@@ -5,10 +5,13 @@ from space_ranger.core.property import Bool
 
 
 class UIElem(GameObject):
+    """UI element."""
+
     is_hovered = Bool()
     is_clicked = Bool()
 
     def process_event(self, event: pg.event.Event) -> None:
+        """Process event..."""
         self.is_hovered = self.rect.collidepoint(*pg.mouse.get_pos())
 
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1 and self.is_hovered:
