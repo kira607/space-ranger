@@ -5,6 +5,7 @@ import pygame as pg
 
 from ._property import Property
 
+
 _TValue: t.TypeAlias = pg.Color
 _TInput: t.TypeAlias = pg.Color | tuple[int, int, int, int] | tuple[int, int, int] | int
 

@@ -4,6 +4,7 @@ import numpy as np
 
 from ._property import Property
 
+
 _TValue: t.TypeAlias = bool
 _TInput: t.TypeAlias = t.Any
 

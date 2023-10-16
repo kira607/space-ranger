@@ -7,6 +7,7 @@ from space_ranger.core.asset import FontAsset, FontFactory
 
 from ._property import Property
 
+
 _TValue: t.TypeAlias = FontFactory
 _TInput: t.TypeAlias = FontFactory | FontAsset | Path | str | None
 

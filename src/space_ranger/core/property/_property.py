@@ -7,6 +7,7 @@ import numpy as np
 
 from space_ranger.core.common import MISSING
 
+
 if t.TYPE_CHECKING:
     from ._properties_observer import PropertiesObserver
 

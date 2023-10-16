@@ -8,6 +8,7 @@ import pygame as pg
 from .logging import LoggerMixin
 from .property import PropertiesObserver
 
+
 if t.TYPE_CHECKING:
     from .scene import Scene
 

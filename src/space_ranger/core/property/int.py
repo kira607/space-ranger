@@ -5,6 +5,7 @@ import pygame as pg
 
 from ._property import Property
 
+
 _TValue: t.TypeAlias = int
 _TInput: t.TypeAlias = int | float
 

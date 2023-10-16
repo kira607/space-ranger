@@ -4,6 +4,7 @@ import numpy as np
 
 from ._property import Property
 
+
 _TValue: t.TypeAlias = str
 _TInput: t.TypeAlias = str | bytes | t.Any
 

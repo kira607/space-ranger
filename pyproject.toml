@@ -52,6 +52,37 @@ exclude =  '''
 
 [tool.isort]
 profile = "black"
+sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
+py_version = 311
+line_length = 120
+multi_line_output = 3
+include_trailing_comma = true
+lines_after_imports = 2
+skip = [
+    "build/",
+    "dist/",
+    "docs/",
+    ".git",
+    ".eggs",
+    "__pycache__",
+    "*.egg-info",
+    ".gitignore",
+    "README.md",
+    "scratches/",
+]
+
+[tool.pydocstyle]
+match-dir = "(?!tests)(?!resources)(?!docs)[^\\.].*"
+match = "(?!test)(?!setup)[^\\._].*\\.py"
+inherit = false
+ignore = [
+    "D200", 
+    "D203", 
+    "D213", 
+    "D406", 
+    "D407",
+    "D107",
+]   # Google conventions
 
 [tool.mypy]
 mypy_path = "src"

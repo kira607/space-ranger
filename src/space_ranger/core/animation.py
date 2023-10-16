@@ -7,6 +7,7 @@ from .game_object import GameObject
 from .logging import LoggerMixin
 from .property import Property
 
+
 _TAnimatedValue = t.TypeVar("_TAnimatedValue")
 AnimationParams: t.TypeAlias = tuple[
     GameObject,

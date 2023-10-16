@@ -72,7 +72,8 @@ class Application(LoggerMixin):
             if event.type == pg.QUIT:
                 self._running = False
             if event.type == pg.KEYDOWN and event.key == pg.K_F3:
-                self.logger.info("Switching to debug mode")
+                on_off = "off" if ctx.config.debug else "on"
+                self.logger.info(f"Switching debug mode to: {on_off}")
                 ctx.config.debug = not ctx.config.debug
             self._current_scene.process_event(event)
 

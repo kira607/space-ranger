@@ -2,6 +2,7 @@ import typing as t
 
 import pygame as pg
 
+
 type ColorType = pg.color.Color | tuple[int, int, int] | tuple[int, int, int, int] | str
 type Bool = bool | t.Literal[0, 1]
 type Alignment = t.Literal["left", "center", "right"]

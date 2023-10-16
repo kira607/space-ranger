@@ -5,6 +5,7 @@ import pygame as pg
 
 from ._property import Property
 
+
 _TValue: t.TypeAlias = pg.math.Vector2
 _TInput: t.TypeAlias = pg.math.Vector2, tuple[int | float, int | float]
 
