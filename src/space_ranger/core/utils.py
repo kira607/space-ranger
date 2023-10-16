@@ -47,3 +47,49 @@ def get_text_surface(
         result_surface.blit(line_surface, (x, prev_height))
         prev_height += line_surface.get_height()
     return result_surface
+
+
+def draw_arrow(
+    surface: pg.Surface,
+    pos: pg.math.Vector2,
+    vec: pg.math.Vector2,
+    color: pg.Color = "white",
+    width: int = 1,
+    arrow_line_length: int = 10,
+    arrow_line_angle: int = 30,
+) -> None:
+    """Draw a vector arrow on a surface.
+
+    :param surface: A surface to draw on.
+    :type surface: pg.Surface
+    :param pos: Start position of the vector.
+    :type pos: pg.math.Vector2
+    :param vec: The vector to draw
+    :type vec: pg.math.Vector2
+    :param color: Arrow color, defaults to "black"
+    :type color: pg.Color, optional
+    :param width: Thickness of arrow lines, defaults to 1
+    :type width: int, optional
+    :param arrow_line_length: Lenght of arrow tip lines, defaults to 10
+    :type arrow_line_length: int, optional
+    :param arrow_line_angle: Angle of arrow tip lines in degrees, defaults to 30
+    :type arrow_line_angle: int, optional
+    """
+    if vec == (0, 0):
+        return
+
+    arrow_tip = pos + vec
+
+    arrow_line_1 = -vec
+    arrow_line_1.normalize_ip()
+    arrow_line_1.rotate_ip(-arrow_line_angle)
+    arrow_line_1 *= arrow_line_length
+
+    arrow_line_2 = -vec
+    arrow_line_2.normalize_ip()
+    arrow_line_2.rotate_ip(arrow_line_angle)
+    arrow_line_2 *= arrow_line_length
+
+    pg.draw.line(surface, color, pos, arrow_tip)
+    pg.draw.line(surface, color, arrow_tip, arrow_tip + arrow_line_1)
+    pg.draw.line(surface, color, arrow_tip, arrow_tip + arrow_line_2)

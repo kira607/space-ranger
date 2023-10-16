@@ -1,15 +1,18 @@
+import logging
 import os
 from pathlib import Path
 
 import pygame as pg
 
+from .logging import LoggerMixin
+
 
 class Controls:
     """Game controls."""
 
-    move_up: int = pg.K_w
+    move_forward: int = pg.K_w
     move_left: int = pg.K_a
-    move_down: int = pg.K_s
+    move_backward: int = pg.K_s
     move_right: int = pg.K_d
 
 
@@ -46,7 +49,7 @@ class Config:
     builtin_assets_dir: Path = Path(os.path.dirname(__file__), "builtin_assets")
 
 
-class ApplicationContext:
+class ApplicationContext(LoggerMixin):
     """An application context."""
 
     controls = Controls()
@@ -76,6 +79,14 @@ class ApplicationContext:
     def debug_text_background(cls) -> pg.Color:
         """Get a text background color for debug labels."""
         return cls._debug_text_background
+
+    @classmethod
+    @property
+    def logger(cls) -> logging.Logger:
+        """Get global logger."""
+        if cls._logger is None:
+            cls._logger = logging.getLogger("ctx")
+        return cls._logger
 
 
 ctx = ApplicationContext

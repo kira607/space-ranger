@@ -96,7 +96,6 @@ class Application(LoggerMixin):
         pg.display.update()
 
     def _draw_debug_info(self) -> None:
-        # draw fps
         debug_surface = get_text_surface(
             f"FPS: {round(self._clock.get_fps(), 2)}",
             f"Scene: {self._current_scene.id}",
@@ -107,6 +106,12 @@ class Application(LoggerMixin):
             antialias=True,
         )
         self._screen.blit(debug_surface, (0, 0))
+
+        # screen grid
+        pg.draw.line(self._screen, (30, 30, 30, 200), (0, ctx.screen.center.y), (ctx.screen.width, ctx.screen.center.y))
+        pg.draw.line(
+            self._screen, (30, 30, 30, 200), (ctx.screen.center.x, 0), (ctx.screen.center.x, ctx.screen.height)
+        )
 
     def _cleanup(self) -> None:
         """Cleanup before quitting application."""

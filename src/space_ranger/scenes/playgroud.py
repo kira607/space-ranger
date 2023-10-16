@@ -5,7 +5,8 @@ from math import atan2, pi
 import pygame as pg
 
 from space_ranger.core import Scene, ctx
-from space_ranger.core.utils import get_text_surface
+from space_ranger.core.asset.image_asset import ImageAsset
+from space_ranger.core.utils import draw_arrow, get_text_surface
 
 
 class Camera:
@@ -95,81 +96,115 @@ class Camera:
 class Thing(pg.sprite.Sprite):
     """A base thing."""
 
+    position: pg.math.Vector2
+    rotation: float
+
+    def __new__(cls, *args, **kwargs) -> None:  # noqa: D102
+        obj = super().__new__(cls)
+        obj.position = pg.math.Vector2()
+        obj.rotation = 0.0
+        obj.image = None
+        obj.rect = None
+        return obj
+
     def __init__(self) -> None:
         super().__init__()
-        self.position = pg.math.Vector2(0, 0)
-        self.rotation = 0
-        self.image = None
-        self.rect = None
-        self.build()
+        self.image = self._get_image()
+        self._update_image()
 
-    def build(self) -> None:
+    def _update_image(self) -> None:
         """Build a thing."""
-        self._build_image()
-        self.image = pg.transform.rotate(self.image, self.rotation)
+        self.image = pg.transform.rotate(self._get_image(), -self.rotation)
         self.rect = self.image.get_rect()
         self.rect.center = self.position
 
-    def _build_image(self) -> None:
+    def _get_image(self) -> pg.Surface:
         raise NotImplementedError()
-
-
-class Player(Thing):
-    """A player."""
-
-    def __init__(self) -> None:
-        self.direction = pg.math.Vector2(0, 0)
-        self.speed = 5
-        super().__init__()
-
-    @property
-    def is_moving(self) -> bool:
-        """Check if the player is moving."""
-        return self.direction != pg.math.Vector2()
-
-    def _build_image(self) -> None:
-        self.image = pg.Surface((100, 100), pg.SRCALPHA)
-        self.image.fill(pg.Color(0, 0, 0))
-
-    def _input(self) -> None:
-        keys = pg.key.get_pressed()
-
-        if keys[ctx.controls.move_up]:
-            self.direction.y = -1
-        elif keys[ctx.controls.move_down]:
-            self.direction.y = 1
-        else:
-            self.direction.y = 0
-
-        if keys[ctx.controls.move_right]:
-            self.direction.x = 1
-        elif keys[ctx.controls.move_left]:
-            self.direction.x = -1
-        else:
-            self.direction.x = 0
-
-        if self.is_moving:
-            self.direction.normalize_ip()
-
-    def _rotate(self) -> None:
-        mouse = pg.math.Vector2(pg.mouse.get_pos())
-        dx = mouse.x - ctx.screen.center.x
-        dy = mouse.y - ctx.screen.center.y
-        angle = atan2(dy, dx) * 180 / pi
-        self.rotation = -angle
-
-    def update(self, delta_time: int) -> None:
-        """Update player."""
-        self._input()
-        self.position += self.direction * self.speed
-        self._rotate()
-        self.build()
 
     def _draw_debug(self, surface: pg.Surface) -> None:
         pg.draw.rect(surface, "red", self.rect, width=1)
         debug_surface = get_text_surface(
             f"pos: {self.position}",
             f"rot: {round(self.rotation, 2)}",
+            font=ctx.debug_text_font,
+            color=ctx.debug_text_color,
+            background=ctx.debug_text_background,
+            antialias=True,
+        )
+        pos = pg.math.Vector2(self.rect.topleft)
+        pos.y -= debug_surface.get_height()
+        surface.blit(debug_surface, (pos))
+
+
+class Spaceship(Thing):
+    """A player."""
+
+    def __init__(self) -> None:
+        self._original_image = pg.transform.scale(ImageAsset("spaceship.png").load().convert_alpha(), (100, 100))
+        self.velocity = pg.math.Vector2(0, 0)
+        self.acceleration = pg.math.Vector2(0, 0)
+        self.engine_force = pg.math.Vector2(0, 0)  # [-1; 1] (forward-back, left-right)
+        self.engine_main_power = 5
+        self.engine_back_power = 3
+        self.engine_lr_power = 2
+        self.mass = 10
+        super().__init__()
+
+    @property
+    def speed(self) -> float:
+        """Get spaceship speed."""
+        return self.velocity.magnitude()
+
+    def _get_image(self) -> None:
+        return self._original_image
+
+    def _update_engine(self) -> None:
+        keys = pg.key.get_pressed()
+
+        if keys[ctx.controls.move_forward]:
+            self.engine_force.x = 1 * self.engine_main_power
+        elif keys[ctx.controls.move_backward]:
+            self.engine_force.x = -1 * self.engine_back_power
+        else:
+            self.engine_force.x = 0
+
+        if keys[ctx.controls.move_right]:
+            self.engine_force.y = 1 * self.engine_lr_power
+        elif keys[ctx.controls.move_left]:
+            self.engine_force.y = -1 * self.engine_lr_power
+        else:
+            self.engine_force.y = 0
+
+    def _update_rotation(self) -> None:
+        mouse = pg.math.Vector2(pg.mouse.get_pos())
+        dx = mouse.x - ctx.screen.center.x
+        dy = mouse.y - ctx.screen.center.y
+        angle = atan2(dy, dx) * 180 / pi
+        self.rotation = angle
+
+    def _move(self) -> None:
+        # self.acceleration = self.engine_force
+        self.velocity = self.engine_force
+        self.velocity.rotate_ip(self.rotation)
+        self.position += self.velocity
+
+    def update(self, delta_time: int) -> None:
+        """Update player."""
+        self._update_engine()
+        self._update_rotation()
+        self._move()
+        self._update_image()
+
+    def _draw_debug(self, surface: pg.Surface) -> None:
+        pg.draw.rect(surface, "red", self.rect, width=1)
+        draw_arrow(surface, self.rect.center, self.velocity * 20, "yellow")
+        debug_surface = get_text_surface(
+            f"pos: {self.position}",
+            f"rot: {round(self.rotation, 2)}",
+            f"engine: {self.engine_force}",
+            f"vel: {self.velocity}",
+            f"acc: {self.acceleration}",
+            f"spd: {self.speed}",
             font=ctx.debug_text_font,
             color=ctx.debug_text_color,
             background=ctx.debug_text_background,
@@ -188,23 +223,10 @@ class RectSprite(Thing):
         self.height = 300
         super().__init__()
 
-    def _build_image(self) -> None:
-        self.image = pg.Surface((self.width, self.height), pg.SRCALPHA)
-        self.image.fill(pg.Color(234, 255, 34, 127))
-
-    def _draw_debug(self, surface: pg.Surface) -> None:
-        pg.draw.rect(surface, "red", self.rect, width=1)
-        debug_surface = get_text_surface(
-            f"pos: {self.position}",
-            f"rot: {round(self.rotation, 2)}",
-            font=ctx.debug_text_font,
-            color=ctx.debug_text_color,
-            background=ctx.debug_text_background,
-            antialias=True,
-        )
-        pos = pg.math.Vector2(self.rect.topleft)
-        pos.y -= debug_surface.get_height()
-        surface.blit(debug_surface, (pos))
+    def _get_image(self) -> pg.Surface:
+        image = pg.Surface((self.width, self.height), pg.SRCALPHA)
+        image.fill(pg.Color(234, 255, 34, 127))
+        return image
 
 
 class Playground(Scene):
@@ -212,17 +234,19 @@ class Playground(Scene):
 
     def _start(self) -> None:
         self.entities = []
+
+        self.camera_free_look = False
+        self.camera_offset = pg.math.Vector2()
         self.camera = Camera(pg.Color(50, 50, 50), ctx.screen.surface, 1 / 1.5, 1)
 
-        self.player = Player()
+        self.player = Spaceship()
         self.camera.add(self.player)
         self.entities.append(self.player)
 
         self.rect = RectSprite()
         self.camera.add(self.rect)
         self.entities.append(self.rect)
-
-        # self.camera.center_at(pg.math.Vector2(0, 0))
+        self.rect.position = (300, 300)
 
     def _process_event(self, event: pg.event.Event) -> None:
         if event.type == pg.QUIT:
@@ -232,11 +256,16 @@ class Playground(Scene):
 
     def _update(self, delta_time: int) -> None:
         self.player.update(delta_time)
-        if ctx.config.debug:
-            # debug camera controller
+
+        key = pg.key.get_pressed()
+
+        if key[pg.K_i]:
+            self.camera_free_look = not self.camera_free_look
+
+        # debug camera controller
+        if self.camera_free_look and ctx.config.debug:
             cam_speed = 7
             zoom_speed = 0.01
-            key = pg.key.get_pressed()
             if key[pg.K_p]:
                 self.camera.center_at(self.camera._position + (0, -cam_speed))
             if key[pg.K_SEMICOLON]:
@@ -250,8 +279,13 @@ class Playground(Scene):
             if key[pg.K_LEFTBRACKET]:
                 self.camera.zoom += zoom_speed
         else:
-            self.camera.center_at(self.player.position)
-            if self.player.is_moving:
+            offset = pg.math.Vector2(pg.mouse.get_pos())
+            offset -= ctx.screen.center
+            if offset:
+                offset.normalize_ip()
+            offset *= offset.magnitude() * 20
+            self.camera.center_at(self.player.position + offset)
+            if self.player.speed:
                 self.camera.zoom -= 0.01
             else:
                 self.camera.zoom += 0.01
