@@ -209,7 +209,7 @@ class Spaceship(Thing):
     def _draw_debug(self, surface: pg.Surface) -> None:
         pg.draw.rect(surface, "red", self.rect, width=1)
         draw_arrow(surface, self.rect.center, self.velocity * 20, "yellow")
-        draw_arrow(surface, self.rect.center, self.acceleration * 2000, "red")
+        draw_arrow(surface, self.rect.center, self.acceleration * 200, "red")
         debug_surface = get_text_surface(
             f"pos: {self.position}",
             f"rot: {round(self.rotation, 2)}",
