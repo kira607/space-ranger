@@ -143,17 +143,26 @@ class Spaceship(Thing):
         self._original_image = pg.transform.scale(ImageAsset("spaceship.png").load().convert_alpha(), (100, 100))
         self.velocity = pg.math.Vector2(0, 0)
         self.acceleration = pg.math.Vector2(0, 0)
-        self.engine_force = pg.math.Vector2(0, 0)  # [-1; 1] (forward-back, left-right)
-        self.engine_main_power = 5
-        self.engine_back_power = 3
-        self.engine_lr_power = 2
-        self.mass = 10
+        self.engine_main_power = 50
+        self.engine_back_power = 30
+        self.engine_lr_power = 20
+        self.mass = 200
+        self.density = 10
         super().__init__()
 
     @property
     def speed(self) -> float:
-        """Get spaceship speed."""
+        """Get current spaceship speed."""
         return self.velocity.magnitude()
+
+    @property
+    def max_speed(self) -> float:
+        """Get maximum spaceship speed."""
+        if getattr(self, "_max_speed", None) is None:
+            fastest_accel = self.engine_main_power / self.mass
+            vel = fastest_accel
+            vel -= vel / self.mass * 10
+            return 1
 
     def _get_image(self) -> None:
         return self._original_image
@@ -162,18 +171,18 @@ class Spaceship(Thing):
         keys = pg.key.get_pressed()
 
         if keys[ctx.controls.move_forward]:
-            self.engine_force.x = 1 * self.engine_main_power
+            self.acceleration.x = self.engine_main_power
         elif keys[ctx.controls.move_backward]:
-            self.engine_force.x = -1 * self.engine_back_power
+            self.acceleration.x = -self.engine_back_power
         else:
-            self.engine_force.x = 0
+            self.acceleration.x = 0
 
         if keys[ctx.controls.move_right]:
-            self.engine_force.y = 1 * self.engine_lr_power
+            self.acceleration.y = self.engine_lr_power
         elif keys[ctx.controls.move_left]:
-            self.engine_force.y = -1 * self.engine_lr_power
+            self.acceleration.y = -self.engine_lr_power
         else:
-            self.engine_force.y = 0
+            self.acceleration.y = 0
 
     def _update_rotation(self) -> None:
         mouse = pg.math.Vector2(pg.mouse.get_pos())
@@ -183,9 +192,11 @@ class Spaceship(Thing):
         self.rotation = angle
 
     def _move(self) -> None:
-        # self.acceleration = self.engine_force
-        self.velocity = self.engine_force
-        self.velocity.rotate_ip(self.rotation)
+        self.acceleration.rotate_ip(self.rotation)
+        self.acceleration /= self.mass
+        self.velocity += self.acceleration
+        self.velocity -= self.velocity / self.mass * self.density
+        # self.velocity.rotate_ip(self.rotation)
         self.position += self.velocity
 
     def update(self, delta_time: int) -> None:
@@ -198,10 +209,10 @@ class Spaceship(Thing):
     def _draw_debug(self, surface: pg.Surface) -> None:
         pg.draw.rect(surface, "red", self.rect, width=1)
         draw_arrow(surface, self.rect.center, self.velocity * 20, "yellow")
+        draw_arrow(surface, self.rect.center, self.acceleration * 2000, "red")
         debug_surface = get_text_surface(
             f"pos: {self.position}",
             f"rot: {round(self.rotation, 2)}",
-            f"engine: {self.engine_force}",
             f"vel: {self.velocity}",
             f"acc: {self.acceleration}",
             f"spd: {self.speed}",
@@ -285,7 +296,8 @@ class Playground(Scene):
                 offset.normalize_ip()
             offset *= offset.magnitude() * 20
             self.camera.center_at(self.player.position + offset)
-            if self.player.speed:
+            # self.camera.zoom = 1 + (1 - self.camera._min_zoom) * (self.player.speed / self.player.max_speed)
+            if self.player.acceleration:
                 self.camera.zoom -= 0.01
             else:
                 self.camera.zoom += 0.01
