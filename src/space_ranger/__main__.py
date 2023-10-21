@@ -50,23 +50,22 @@ def main() -> None:
     init_logging(level=ctx.config.logging_level)
     ctx.config.debug = args.debug
     ctx.config.assets_dir = Path(os.path.dirname(__file__), "assets")
-    ctx.screen.width = 1920
-    ctx.screen.height = 1080
+    ctx.screen.width = 1000
+    ctx.screen.height = 1000
 
     app = Application(get_title())
     app.register_scene(Playground("playground"))
 
-    with cProfile.Profile() as pr:
-        app.run("playground")
+    # with cProfile.Profile() as pr:
+    app.run("playground")
 
-    stats = pstats.Stats(pr)
-    stats.sort_stats(pstats.SortKey.TIME)
+    # stats = pstats.Stats(pr)
+    # stats.sort_stats(pstats.SortKey.TIME)
     # stats.print_stats()
-    uid = datetime.now().strftime("%S-%M-%H-%d-%m-%Y")
-    profiling_resutls_path = f"logs/profile-{uid}.prof"
-    stats.dump_stats(filename=profiling_resutls_path)
-
-    ctx.logger.info(f"session profiling and logs are written to: {profiling_resutls_path}")
+    # uid = datetime.now().strftime("%S-%M-%H-%d-%m-%Y")
+    # profiling_resutls_path = f"logs/profile-{uid}.prof"
+    # stats.dump_stats(filename=profiling_resutls_path)
+    # ctx.logger.info(f"session profiling and logs are written to: {profiling_resutls_path}")
 
 
 if __name__ == "__main__":

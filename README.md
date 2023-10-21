@@ -26,7 +26,4 @@ flowchart LR;
 
 # TODO
 
-- [ ] Rewrite Text and Button in space_ranger.ui
-- [ ] Add functionality to GameObject if needed
-- [ ] Setup a playgournd scene
-- [ ] Fix (or disable) main menu scene if needed
+- [ ] Get rid off separate draw method call in game loop. Move draw logic in the rendering system.

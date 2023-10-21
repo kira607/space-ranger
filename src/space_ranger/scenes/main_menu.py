@@ -101,7 +101,7 @@ class MainMenu(Scene):
         """Cleanup."""
         super().finish()
 
-    def process_event(self, event: pg.event.Event) -> None:
+    def process_events(self, event: pg.event.Event) -> None:
         """Process pygame event.
 
         :param pg.event.Event event: A pygame event to process.

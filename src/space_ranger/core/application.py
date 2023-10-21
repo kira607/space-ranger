@@ -10,7 +10,7 @@ class Application(LoggerMixin):
     """A main application class."""
 
     def __init__(self, title: str = "Game") -> None:
-        self.logger.info(f"Initializing application {title}...")
+        self.logger.info(f"Initializing application '{title}'")
 
         self._title = title
         self._scenes: dict[str, Scene] = {}
@@ -43,8 +43,10 @@ class Application(LoggerMixin):
             self._init(start_scene_id)
             self._main_loop()
         except BaseException as e:
-            self.logger.exception(f"Unhandled exception {e}:")
+            self.logger.exception(f"Unhandled exception ({type(e).__name__}) - {e}:")
             self.logger.critical("Application has stopped because of an unhandled exception")
+            if ctx.config.debug:
+                raise
         finally:
             self._cleanup()
 
@@ -53,6 +55,7 @@ class Application(LoggerMixin):
         if not self._scenes:
             raise ValueError("Cannot start application with zero scenes.")
 
+        self.logger.info(f"Starting application '{self._title}' with a scene '{start_scene_id}'")
         self._current_scene = self._scenes[start_scene_id]
         self._current_scene.start()
         self._running = True
@@ -62,31 +65,25 @@ class Application(LoggerMixin):
         self.logger.info("Running main loop of the application")
         while self._running:
             delta_time = self._clock.tick(ctx.screen.fps)
-            self._process_events()
             self._update(delta_time)
             self._draw()
-
-    def _process_events(self) -> None:
-        """Process pygame events."""
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self._running = False
-            if event.type == pg.KEYDOWN and event.key == pg.K_F3:
-                on_off = "off" if ctx.config.debug else "on"
-                self.logger.info(f"Switching debug mode to: {on_off}")
-                ctx.config.debug = not ctx.config.debug
-            self._current_scene.process_event(event)
 
     def _update(self, delta_time: int) -> None:
         """Run current scene update.
 
-        :param int delta_time: Delta time (in milliseconds).
+        :param delta_time: Delta time (in milliseconds).
+        :type delta_time: int
         """
+        events = pg.event.get()
+        for event in events:
+            if event.type == pg.QUIT:
+                self._running = False
+
         if self._current_scene.is_app_should_quit:
             self._running = False
         elif self._current_scene.is_done:
             self._current_scene = self._get_next_scene()
-        self._current_scene.update(delta_time)
+        self._current_scene.update(events, delta_time)
 
     def _draw(self) -> None:
         """Render current scene."""

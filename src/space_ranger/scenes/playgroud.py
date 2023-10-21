@@ -1,96 +1,17 @@
 from __future__ import annotations
 
+import random
+from dataclasses import InitVar, dataclass, field
 from math import atan2, pi
 
 import pygame as pg
 
 from space_ranger.core import Scene, ctx
 from space_ranger.core.asset.image_asset import ImageAsset
-from space_ranger.core.utils import draw_arrow, get_text_surface
-
-
-class Camera:
-    """A scene camera."""
-
-    def __init__(
-        self,
-        background_color: pg.Color,
-        screen: pg.Surface,
-        min_zoom: float = 1,
-        max_zoom: float = 1,
-    ) -> None:
-        self._sprites: list[pg.sprite.Sprite] = []
-        self._background_color = background_color
-
-        self._min_zoom = round(float(min_zoom), 3)
-        self._max_zoom = round(float(max_zoom), 3)
-        self._zoom_scale: float = 1
-
-        self._offset: pg.math.Vector2 = pg.math.Vector2()
-        self._position: pg.math.Vector2 = pg.math.Vector2()
-
-        self._screen = screen
-        self._vscreen_size = pg.Vector2(self._screen.get_rect().size) / self._min_zoom
-        self._vscreen_surface = pg.Surface(self._vscreen_size, pg.SRCALPHA)
-        self._vscreen_center = pg.math.Vector2(
-            self._vscreen_surface.get_size()[0] // 2,
-            self._vscreen_surface.get_size()[1] // 2,
-        )
-        self._vscreen_rect = self._vscreen_surface.get_rect(center=self._vscreen_center)
-
-        self._calculate_offset()
-
-    def add(self, sprite: pg.sprite.Sprite) -> None:
-        """Add a sprite."""
-        self._sprites.append(sprite)
-
-    @property
-    def zoom(self) -> float:
-        """Get zoom value."""
-        return self._clamp_zoom(self._zoom_scale)
-
-    @zoom.setter
-    def zoom(self, value: float) -> None:
-        """Set zoom value.
-
-        Zoom value equaling 1 is a default zoom.
-
-        :param value: New zoom value.
-        :type value: float
-        """
-        self._zoom_scale = self._clamp_zoom(value)
-
-    def center_at(self, pos: pg.math.Vector2) -> None:
-        """Center camera at given point.
-
-        :param pos: Center point to focus on.
-        :type pos: pg.math.Vector2
-        """
-        self._position = pos
-        self._calculate_offset()
-
-    def draw(self) -> None:
-        """Draw sprites."""
-        self._vscreen_surface.fill(self._background_color)
-        for sprite in self._sprites:
-            sprite.rect.center = sprite.position + self._offset
-            self._vscreen_surface.blit(sprite.image, sprite.rect.topleft)
-            if ctx.config.debug:
-                sprite._draw_debug(self._vscreen_surface)
-            # sprite.draw(self._vscreen_surface)
-
-        scaled_surface = pg.transform.scale(self._vscreen_surface, self._vscreen_size * self.zoom)
-        scaled_rect = scaled_surface.get_rect(center=self._screen.get_rect().center)
-        self._screen.blit(scaled_surface, scaled_rect)
-        if ctx.config.debug:
-            pg.draw.rect(self._screen, (255, 255, 0), scaled_rect, 1)
-
-    def _clamp_zoom(self, zoom_value: float) -> float:
-        return pg.math.clamp(zoom_value, self._min_zoom, self._max_zoom)
-
-    def _calculate_offset(self) -> None:
-        zoom_offset = pg.math.Vector2(self._vscreen_size // 2 - self._vscreen_center)
-        self._offset = -self._position + self._vscreen_center + zoom_offset
+from space_ranger.core.component import Camera, Script, Sprite, Transform
+from space_ranger.core.entity import Entity, make_entity
+from space_ranger.core.system import DebugSystem, RenderingSystem, ScriptingSystem, SpriteRotationSystem, System
+from space_ranger.core.utils import draw_arrow, get_text_surface, rect
 
 
 class Thing(pg.sprite.Sprite):
@@ -136,18 +57,111 @@ class Thing(pg.sprite.Sprite):
         surface.blit(debug_surface, (pos))
 
 
+@dataclass(slots=True)
+class Engine:
+    """A spaceship engine."""
+
+    power: float = 0
+    state: bool = False
+
+    def __bool__(self) -> bool:
+        """Get a boolean value of an engine.
+
+        :return: True if it is ignited, False otherwise.
+        :rtype: bool
+        """
+        return self.state
+
+    @property
+    def value(self) -> float:
+        """Get engine power value.
+
+        :return: Engine power if it is ignited, 0 otherwise.
+        :rtype: float
+        """
+        return self.power * self.state
+
+
+@dataclass(slots=True)
+class SpaceshipReactor:
+    """A spaceship reactor.
+
+    Produces a power for all spaceship engines
+    including a stabalizer engine.
+    """
+
+    power: InitVar[float]
+    back_engine: Engine = field(default_factory=Engine)
+    front_engine: Engine = field(default_factory=Engine)
+    left_engine: Engine = field(default_factory=Engine)
+    right_engine: Engine = field(default_factory=Engine)
+    stabalizer_engine: Engine = field(default_factory=Engine)
+
+    def __post_init__(self, power: float) -> None:
+        """Post init reactor."""
+        self.back_engine.power = power
+        self.front_engine.power = power * 0.6
+        self.left_engine.power = power * 0.4
+        self.right_engine.power = power * 0.4
+        self.stabalizer_engine.power = power * 0.8
+
+    def get_acceleration_vector(self, velocity: pg.math.Vector2, mass: float) -> pg.math.Vector2:
+        """Get a vector describing a spaceship acceleration.
+
+        Acceleration is a vector that is a sum of all engines
+        forces applied to a spaceship.
+        """
+        v = pg.math.Vector2(
+            self.back_engine.value - self.front_engine.value,
+            self.left_engine.value - self.right_engine.value,
+        )
+        v += self.get_stabilization_vector(velocity, mass)
+        return v
+
+    def get_stabilization_vector(self, velocity: pg.math.Vector2, mass: float) -> pg.math.Vector2:
+        """Get a stabilization force vector.
+
+        A stabalizer engine prevents a spaceship from infinite floating
+        in space. Stabalizer simulates air conditions, like if a spaceship
+        were in air and there were air force.
+
+        Stabalizer force vector should be applied to a spaceship velocity,
+        not acceleration.
+
+        :param velocity: Current spaceship velocity.
+        :type velocity: pg.math.Vector2
+        :param mass: A spaceship total mass.
+        :type mass: float
+
+        :return: Stabalizer force vector.
+        :rtype: pg.math.Vector2
+        """
+        v = velocity.magnitude()
+        ro = 1.4
+        S = 100
+        A = 0.3
+        k = ro * S * A * v * v
+        return -velocity * k
+        stabalizer_force_vector = -(velocity * mass) / (self.stabalizer_engine.power)
+        return stabalizer_force_vector
+
+
 class Spaceship(Thing):
     """A player."""
 
     def __init__(self) -> None:
-        self._original_image = pg.transform.scale(ImageAsset("spaceship.png").load().convert_alpha(), (100, 100))
+        # physics vectors
         self.velocity = pg.math.Vector2(0, 0)
         self.acceleration = pg.math.Vector2(0, 0)
-        self.engine_main_power = 50
-        self.engine_back_power = 30
-        self.engine_lr_power = 20
-        self.mass = 200
-        self.density = 10
+        self.velocity_stabilizer = pg.math.Vector2(0, 0)
+
+        # ship parts
+        self.reactor = SpaceshipReactor(500)
+        self.mass = self.physics.mass
+        self._max_speed = self._estimate_max_speed()
+
+        self._original_image = pg.transform.scale(ImageAsset("spaceship.png").load().convert_alpha(), (100, 100))
+
         super().__init__()
 
     @property
@@ -158,31 +172,25 @@ class Spaceship(Thing):
     @property
     def max_speed(self) -> float:
         """Get maximum spaceship speed."""
-        if getattr(self, "_max_speed", None) is None:
-            fastest_accel = self.engine_main_power / self.mass
-            vel = fastest_accel
-            vel -= vel / self.mass * 10
-            return 1
+        return self._max_speed
+
+    def update(self, delta_time: int) -> None:
+        """Update player."""
+        self._input()
+        self._update_rotation()
+        self._apply_forces()
+        self._move(delta_time / 1000)
+        self._update_image()
 
     def _get_image(self) -> None:
         return self._original_image
 
-    def _update_engine(self) -> None:
+    def _input(self) -> None:
         keys = pg.key.get_pressed()
-
-        if keys[ctx.controls.move_forward]:
-            self.acceleration.x = self.engine_main_power
-        elif keys[ctx.controls.move_backward]:
-            self.acceleration.x = -self.engine_back_power
-        else:
-            self.acceleration.x = 0
-
-        if keys[ctx.controls.move_right]:
-            self.acceleration.y = self.engine_lr_power
-        elif keys[ctx.controls.move_left]:
-            self.acceleration.y = -self.engine_lr_power
-        else:
-            self.acceleration.y = 0
+        self.reactor.back_engine.state = keys[ctx.controls.move_forward]
+        self.reactor.front_engine.state = keys[ctx.controls.move_backward]
+        self.reactor.left_engine.state = keys[ctx.controls.move_right]
+        self.reactor.right_engine.state = keys[ctx.controls.move_left]
 
     def _update_rotation(self) -> None:
         mouse = pg.math.Vector2(pg.mouse.get_pos())
@@ -191,31 +199,40 @@ class Spaceship(Thing):
         angle = atan2(dy, dx) * 180 / pi
         self.rotation = angle
 
-    def _move(self) -> None:
+    def _apply_forces(self) -> None:
+        self.physics.forces = [self.reactor.get_acceleration_vector(self.velocity, self.mass)]
+
+    def _move(self, delta_time: float) -> None:
+        self.acceleration = self.reactor.get_acceleration_vector(self.velocity, self.mass)
+        self.velocity_stabilizer = self.reactor.get_stabilization_vector(self.velocity, self.mass)
         self.acceleration.rotate_ip(self.rotation)
         self.acceleration /= self.mass
-        self.velocity += self.acceleration
-        self.velocity -= self.velocity / self.mass * self.density
-        # self.velocity.rotate_ip(self.rotation)
-        self.position += self.velocity
+        self.velocity = self.velocity + self.acceleration * delta_time
+        self.position = self.position + self.velocity * delta_time
 
-    def update(self, delta_time: int) -> None:
-        """Update player."""
-        self._update_engine()
-        self._update_rotation()
-        self._move()
-        self._update_image()
+    def _estimate_max_speed(self) -> float:
+        v = 0
+        max_speed = 0
+        for _ in range(1000):  # more cycles = more presiciton
+            a = self.reactor.back_engine.power / self.mass
+            v += a
+            v += self.reactor.get_stabilization_vector(pg.math.Vector2(v, 0), self.mass).magnitude()
+        max_speed = v
+        return 1
 
     def _draw_debug(self, surface: pg.Surface) -> None:
         pg.draw.rect(surface, "red", self.rect, width=1)
-        draw_arrow(surface, self.rect.center, self.velocity * 20, "yellow")
-        draw_arrow(surface, self.rect.center, self.acceleration * 200, "red")
+        vector_scaling_coeff = 100
+        draw_arrow(surface, self.rect.center, self.velocity * vector_scaling_coeff, "yellow", 3)
+        draw_arrow(surface, self.rect.center, self.acceleration * vector_scaling_coeff, "red", 3)
+        draw_arrow(surface, self.rect.center, self.velocity_stabilizer * vector_scaling_coeff, "green", 3)
         debug_surface = get_text_surface(
             f"pos: {self.position}",
             f"rot: {round(self.rotation, 2)}",
             f"vel: {self.velocity}",
             f"acc: {self.acceleration}",
             f"spd: {self.speed}",
+            f"mxs: {self.max_speed}",
             font=ctx.debug_text_font,
             color=ctx.debug_text_color,
             background=ctx.debug_text_background,
@@ -226,110 +243,206 @@ class Spaceship(Thing):
         surface.blit(debug_surface, (pos))
 
 
-class RectSprite(Thing):
-    """Rect sprite."""
+@dataclass(slots=True)
+class EscHandler(Script):
+    """Ecs key handler."""
 
-    def __init__(self) -> None:
-        self.width = 200
-        self.height = 300
-        super().__init__()
+    def _update(self, events: list[pg.event.Event], delta_time: int) -> None:
+        for event in events:
+            if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+                self.scene.exit_application()
 
-    def _get_image(self) -> pg.Surface:
-        image = pg.Surface((self.width, self.height), pg.SRCALPHA)
-        image.fill(pg.Color(234, 255, 34, 127))
-        return image
+
+@dataclass(slots=True)
+class PlayerController(Script):
+    """Simple player controller."""
+
+    speed: int = 5
+    camera: Entity = field(default=None)
+
+    def _update(self, events: list[pg.event.Event], delta_time: int) -> None:
+        self._update_rotation()
+        keys = pg.key.get_pressed()
+        pos = self.entity.transform
+        if keys[ctx.controls.move_forward]:
+            pos.y -= self.speed
+        if keys[ctx.controls.move_backward]:
+            pos.y += self.speed
+        if keys[ctx.controls.move_right]:
+            pos.x += self.speed
+        if keys[ctx.controls.move_left]:
+            pos.x -= self.speed
+
+        self.camera.transform.position = pos.position
+
+    def _update_rotation(self) -> None:
+        mouse = pg.math.Vector2(pg.mouse.get_pos())
+        dx = mouse.x - ctx.screen.center.x
+        dy = mouse.y - ctx.screen.center.y
+        angle = atan2(dy, dx) * 180 / pi
+        self.entity.transform.rotation = angle
+
+
+@dataclass(slots=True)
+class CameraSetup(Script):
+    """Camera setup script."""
+
+    def _start(self) -> None:
+        cam: Camera = self.entity.get_component(Camera)
+        cam.background_color = pg.Color(50, 50, 50)
+
+
+@dataclass(slots=True)
+class InstantiateTest(Script):
+    """Object instantiation test."""
+
+    spawn_rate: int = 10
+    elapsed: int = 0
+    current_rects: int = 0
+    max_rects: int = 1000
+
+    def _update(self, events: list[pg.event.Event], delta_time: int) -> None:
+        self.elapsed += delta_time
+        if self.elapsed >= self.spawn_rate:
+            if self.current_rects >= self.max_rects:
+                return
+            self._spawn_rect()
+            self.current_rects = self.current_rects + 1
+
+    def _spawn_rect(self) -> None:
+        x = random.randint(-ctx.screen.width // 2, ctx.screen.width // 2)
+        y = random.randint(-ctx.screen.height // 2, ctx.screen.height // 2)
+        rotation = random.randint(0, 360)
+        size = random.randint(10, 50)
+        color = pg.Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255), 127)
+        entity = make_entity(
+            Transform(x=x, y=y, rotation=rotation),
+            Sprite(source=rect(size, size, color)),
+        )
+        self.scene.instantiate(entity)
 
 
 class Playground(Scene):
     """A main menu state."""
 
-    def _start(self) -> None:
-        self.entities = []
-
-        self.camera_free_look = False
-        self.camera_offset = pg.math.Vector2()
-        self.camera = Camera(pg.Color(50, 50, 50), ctx.screen.surface, 1 / 1.5, 1)
-
-        self.player = Spaceship()
-        self.camera.add(self.player)
-        self.entities.append(self.player)
-
-        self.rect = RectSprite()
-        self.camera.add(self.rect)
-        self.entities.append(self.rect)
-        self.rect.position = (300, 300)
-
-    def _process_event(self, event: pg.event.Event) -> None:
-        if event.type == pg.QUIT:
-            self.exit_application()
-        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
-            self.exit_application()
-
-    def _update(self, delta_time: int) -> None:
-        self.player.update(delta_time)
-
-        key = pg.key.get_pressed()
-
-        if key[pg.K_i]:
-            self.camera_free_look = not self.camera_free_look
-
-        # debug camera controller
-        if self.camera_free_look and ctx.config.debug:
-            cam_speed = 7
-            zoom_speed = 0.01
-            if key[pg.K_p]:
-                self.camera.center_at(self.camera._position + (0, -cam_speed))
-            if key[pg.K_SEMICOLON]:
-                self.camera.center_at(self.camera._position + (0, cam_speed))
-            if key[pg.K_l]:
-                self.camera.center_at(self.camera._position + (-cam_speed, 0))
-            if key[pg.K_QUOTE]:
-                self.camera.center_at(self.camera._position + (cam_speed, 0))
-            if key[pg.K_o]:
-                self.camera.zoom -= zoom_speed
-            if key[pg.K_LEFTBRACKET]:
-                self.camera.zoom += zoom_speed
-        else:
-            offset = pg.math.Vector2(pg.mouse.get_pos())
-            offset -= ctx.screen.center
-            if offset:
-                offset.normalize_ip()
-            offset *= offset.magnitude() * 20
-            self.camera.center_at(self.player.position + offset)
-            # self.camera.zoom = 1 + (1 - self.camera._min_zoom) * (self.player.speed / self.player.max_speed)
-            if self.player.acceleration:
-                self.camera.zoom -= 0.01
-            else:
-                self.camera.zoom += 0.01
-
-    def _draw(self, screen: pg.Surface) -> None:
-        # screen.fill((50, 50, 50))
-        self.camera.draw()
-        if ctx.config.debug:
-            self._draw_debug(screen)
-
-    def _draw_debug(self, surface: pg.Surface) -> None:
-        lines = []
-        for entity in self.entities:
-            lines.append(f"Entity: {entity.__class__.__name__}:")
-            lines.append(f"    position: {entity.position}")
-            lines.append(f"    rect: {entity.rect}")
-            lines.append("------------------")
-        lines.append("Camera:")
-        lines.append(f"    pos: {self.camera._position}")
-        lines.append(f"    rect: {self.camera._vscreen_rect}")
-        lines.append(f"    center: {self.camera._vscreen_center}")
-        lines.append(f"    size: {self.camera._vscreen_size}")
-        lines.append(f"    offset: {self.camera._offset}")
-        lines.append(
-            f"    zoom [{self.camera._min_zoom}, {self.camera._max_zoom}]: {round(self.camera._zoom_scale, 3)}"
+    def _get_entities(self) -> set[Entity]:
+        camera = make_entity(
+            Camera(),
+            CameraSetup(),
         )
-        debug_surface = get_text_surface(
-            *lines,
-            font=ctx.debug_text_font,
-            color=ctx.debug_text_color,
-            background=ctx.debug_text_background,
-            antialias=True,
-            alignment="right",
-        )
-        surface.blit(debug_surface, (ctx.screen.width - debug_surface.get_width(), 0))
+
+        return {
+            # camera
+            camera,
+            # rect
+            make_entity(
+                Transform(x=300, y=300),
+                Sprite(source=rect(200, 300, pg.Color(234, 255, 34, 127))),
+            ),
+            # player
+            make_entity(
+                Sprite(source=pg.transform.scale(ImageAsset("spaceship.png").load().convert_alpha(), (100, 100))),
+                PlayerController(camera=camera),
+            ),
+            make_entity(EscHandler()),
+            # make_entity(InstantiateTest()),
+        }
+
+    def _get_systems(self) -> set[System]:
+        return {
+            ScriptingSystem(group=0),
+            SpriteRotationSystem(group=1),
+            RenderingSystem(group=2),
+            # DebugSystem(group=3),
+        }
+
+    # def _start(self) -> None:
+    #     self.entities = []
+
+    #     self.camera_free_look = False
+    #     self.camera_offset = pg.math.Vector2()
+    #     self.camera = Camera(pg.Color(50, 50, 50), ctx.screen.surface, 1 / 1.5, 1)
+
+    #     self.player = Spaceship()
+    #     self.camera.add(self.player)
+    #     self.entities.append(self.player)
+
+    #     self.rect = RectSprite()
+    #     self.camera.add(self.rect)
+    #     self.entities.append(self.rect)
+    #     self.rect.position = (300, 300)
+
+    # def _process_event(self, event: pg.event.Event) -> None:
+    #     if event.type == pg.QUIT:
+    #         self.exit_application()
+    #     if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+    #         self.exit_application()
+
+    # def _update(self, delta_time: int) -> None:
+    #     self.player.update(delta_time)
+
+    #     key = pg.key.get_pressed()
+
+    #     if key[pg.K_i]:
+    #         self.camera_free_look = not self.camera_free_look
+
+    #     # debug camera controller
+    #     if self.camera_free_look and ctx.config.debug:
+    #         cam_speed = 7
+    #         zoom_speed = 0.01
+    #         if key[pg.K_p]:
+    #             self.camera.center_at(self.camera._position + (0, -cam_speed))
+    #         if key[pg.K_SEMICOLON]:
+    #             self.camera.center_at(self.camera._position + (0, cam_speed))
+    #         if key[pg.K_l]:
+    #             self.camera.center_at(self.camera._position + (-cam_speed, 0))
+    #         if key[pg.K_QUOTE]:
+    #             self.camera.center_at(self.camera._position + (cam_speed, 0))
+    #         if key[pg.K_o]:
+    #             self.camera.zoom -= zoom_speed
+    #         if key[pg.K_LEFTBRACKET]:
+    #             self.camera.zoom += zoom_speed
+    #     else:
+    #         offset = pg.math.Vector2(pg.mouse.get_pos())
+    #         offset -= ctx.screen.center
+    #         if offset:
+    #             offset.normalize_ip()
+    #         offset *= offset.magnitude() * 20
+    #         self.camera.center_at(self.player.position + offset)
+    #         self.camera.zoom = 1 + (1 - self.camera._min_zoom) * (self.player.speed / self.player.max_speed)
+    #         if self.player.acceleration:
+    #             self.camera.zoom -= 0.01
+    #         else:
+    #             self.camera.zoom += 0.01
+
+    # def _draw(self, screen: pg.Surface) -> None:
+    #     # screen.fill((50, 50, 50))
+    #     self.camera.draw()
+    #     if ctx.config.debug:
+    #         self._draw_debug(screen)
+
+    # def _draw_debug(self, surface: pg.Surface) -> None:
+    #     lines = []
+    #     for entity in self.entities:
+    #         lines.append(f"Entity: {entity.__class__.__name__}:")
+    #         lines.append(f"    position: {entity.position}")
+    #         lines.append(f"    rect: {entity.rect}")
+    #         lines.append("------------------")
+    #     lines.append("Camera:")
+    #     lines.append(f"    pos: {self.camera._position}")
+    #     lines.append(f"    rect: {self.camera._vscreen_rect}")
+    #     lines.append(f"    center: {self.camera._vscreen_center}")
+    #     lines.append(f"    size: {self.camera._vscreen_size}")
+    #     lines.append(f"    offset: {self.camera._offset}")
+    #     lines.append(
+    #         f"    zoom [{self.camera._min_zoom}, {self.camera._max_zoom}]: {round(self.camera._zoom_scale, 3)}"
+    #     )
+    #     debug_surface = get_text_surface(
+    #         *lines,
+    #         font=ctx.debug_text_font,
+    #         color=ctx.debug_text_color,
+    #         background=ctx.debug_text_background,
+    #         antialias=True,
+    #         alignment="right",
+    #     )
+    #     surface.blit(debug_surface, (ctx.screen.width - debug_surface.get_width(), 0))

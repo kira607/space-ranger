@@ -1,24 +1,30 @@
 {
     "python.analysis.typeCheckingMode": "off",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.autoFormatStrings": true,
+    "python.analysis.extraPaths": [
+        "./src"
+    ],
+
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
+
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true,
     },
+
     "black-formatter.args": ["--config", "pyproject.toml"],
     "flake8.args": [
         "--config=setup.cfg",
     ],
-    "python.analysis.autoFormatStrings": true,
-    "autoDocstring.customTemplatePath": ".vscode/.mustache",
-    "autoDocstring.docstringFormat": "sphinx",
     "mypy-type-checker.args": [
         "--config-file=pyproject.toml",
     ],
-    "python.analysis.extraPaths": [
-        "./src"
-    ],
+
+    "autoDocstring.docstringFormat": "sphinx",
+    "autoDocstring.customTemplatePath": ".vscode/.mustache",
+
     "files.exclude": {
         "**/__pycache__": true
     },
