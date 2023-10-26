@@ -90,6 +90,59 @@ def draw_arrow(
     arrow_line_2.rotate_ip(arrow_line_angle)
     arrow_line_2 *= arrow_line_length
 
-    pg.draw.line(surface, color, pos, arrow_tip)
-    pg.draw.line(surface, color, arrow_tip, arrow_tip + arrow_line_1)
-    pg.draw.line(surface, color, arrow_tip, arrow_tip + arrow_line_2)
+    pg.draw.line(surface, color, pos, arrow_tip, width=width)
+    pg.draw.line(surface, color, arrow_tip, arrow_tip + arrow_line_1, width=width)
+    pg.draw.line(surface, color, arrow_tip, arrow_tip + arrow_line_2, width=width)
+
+
+_DEFAULT_COLOR = pg.color.Color(0, 0, 0)
+
+
+def rect(width: int, height: int, color: pg.color.Color = _DEFAULT_COLOR) -> pg.Surface:
+    """Get a rectangle sprite image.
+
+    :param width: Width of the rectangle.
+    :type width: int
+    :param height: Height of the rectangle.
+    :type height: int
+    :param color: Rectangle fill color, defaults to _DEFAULT_COLOR
+    :type color: pg.color.Color, optional
+
+    :return: A pygame Surface with a rectangle with given parameters.
+    :rtype: pg.Surface
+    """
+    surf = pg.Surface((width, height), pg.SRCALPHA)
+    surf.fill(color)
+    return surf
+
+
+def circle(radius: int, color: pg.color.Color = _DEFAULT_COLOR) -> pg.Surface:
+    """Get a circle sprite image.
+
+    :param radius: Circle radius.
+    :type radius: int
+    :param color: Circle fill color, defaults to _DEFAULT_COLOR
+    :type color: pg.color.Color, optional
+
+    :return: A pygame Surface with a circle with given parameters.
+    :rtype: pg.Surface
+    """
+    diameter = radius * 2
+    surf = pg.Surface((diameter, diameter), pg.SRCALPHA)
+    surf.fill((0, 0, 0, 0))
+    pg.draw.circle(surf, color, (radius, radius), radius)
+    return surf
+
+
+def square(size: int, color: pg.color.Color = _DEFAULT_COLOR) -> pg.Surface:
+    """Get a square sprite image.
+
+    :param size: Square size.
+    :type size: int
+    :param color: Square fill color, defaults to _DEFAULT_COLOR
+    :type color: pg.color.Color, optional
+
+    :return: A pygame Surface with a square with given parameters.
+    :rtype: pg.Surface
+    """
+    return rect(size, size, color)
