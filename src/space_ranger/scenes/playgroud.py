@@ -209,7 +209,7 @@ class Spaceship(Sprite):
         if not acceleration:
             if not self.velocity:
                 return acceleration
-            acceleration = -self.velocity * self.engine.power * .3
+            acceleration = -self.velocity * self.engine.power * 0.3
         acceleration /= self.mass
         if acceleration.magnitude() <= 0.002:
             return pg.math.Vector2()
@@ -218,9 +218,9 @@ class Spaceship(Sprite):
     def _get_forces(self) -> list[pg.math.Vector2]:
         return [
             pg.math.Vector2(self.engine.back_engine_power * self.engine.power, 0).rotate(self.rotation),
-            pg.math.Vector2(-self.engine.front_engine_power * self.engine.power * .6, 0).rotate(self.rotation),
-            pg.math.Vector2(0, self.engine.left_engine_power * self.engine.power * .4).rotate(self.rotation),
-            pg.math.Vector2(0, -self.engine.right_engine_power * self.engine.power * .4).rotate(self.rotation),
+            pg.math.Vector2(-self.engine.front_engine_power * self.engine.power * 0.6, 0).rotate(self.rotation),
+            pg.math.Vector2(0, self.engine.left_engine_power * self.engine.power * 0.4).rotate(self.rotation),
+            pg.math.Vector2(0, -self.engine.right_engine_power * self.engine.power * 0.4).rotate(self.rotation),
         ]
 
     def _draw_debug(self, surface: pg.Surface) -> None:
