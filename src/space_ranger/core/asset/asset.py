@@ -6,10 +6,7 @@ from space_ranger.core import ctx
 from space_ranger.core.logging import LoggerMixin
 
 
-T = t.TypeVar("T")
-
-
-class Asset(abc.ABC, LoggerMixin, t.Generic[T]):
+class Asset[T](abc.ABC, LoggerMixin):
     """A base asset class.
 
     :param str name: A file name of asset.
