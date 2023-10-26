@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from math import atan2, pi
 
 import pygame as pg
@@ -93,8 +94,8 @@ class Camera:
         self._offset = -self._position + self._vscreen_center + zoom_offset
 
 
-class Thing(pg.sprite.Sprite):
-    """A base thing."""
+class Sprite(pg.sprite.Sprite):
+    """A base sprite."""
 
     position: pg.math.Vector2
     rotation: float
@@ -136,16 +137,28 @@ class Thing(pg.sprite.Sprite):
         surface.blit(debug_surface, (pos))
 
 
-class Spaceship(Thing):
+@dataclass
+class SpaceshipCore:
+    power: float
+    max_speed: float
+    acceleration: float
+
+    back_engine_power: float = 0
+    front_engine_power: float = 0
+    left_engine_power: float = 0
+    right_engine_power: float = 0
+
+
+class Spaceship(Sprite):
     """A player."""
 
     def __init__(self) -> None:
         self._original_image = pg.transform.scale(ImageAsset("spaceship.png").load().convert_alpha(), (100, 100))
+
         self.velocity = pg.math.Vector2(0, 0)
         self.acceleration = pg.math.Vector2(0, 0)
-        self.engine_main_power = 50
-        self.engine_back_power = 30
-        self.engine_lr_power = 20
+
+        self.engine = SpaceshipCore(50, 10, 10)
         self.mass = 200
         self.density = 10
         super().__init__()
@@ -158,31 +171,24 @@ class Spaceship(Thing):
     @property
     def max_speed(self) -> float:
         """Get maximum spaceship speed."""
-        if getattr(self, "_max_speed", None) is None:
-            fastest_accel = self.engine_main_power / self.mass
-            vel = fastest_accel
-            vel -= vel / self.mass * 10
-            return 1
+        return self.engine.max_speed
+
+    def update(self, delta_time: int) -> None:
+        """Update player."""
+        self._update_engine()
+        self._update_rotation()
+        self._move()
+        self._update_image()
 
     def _get_image(self) -> None:
         return self._original_image
 
     def _update_engine(self) -> None:
         keys = pg.key.get_pressed()
-
-        if keys[ctx.controls.move_forward]:
-            self.acceleration.x = self.engine_main_power
-        elif keys[ctx.controls.move_backward]:
-            self.acceleration.x = -self.engine_back_power
-        else:
-            self.acceleration.x = 0
-
-        if keys[ctx.controls.move_right]:
-            self.acceleration.y = self.engine_lr_power
-        elif keys[ctx.controls.move_left]:
-            self.acceleration.y = -self.engine_lr_power
-        else:
-            self.acceleration.y = 0
+        self.engine.back_engine_power = float(keys[ctx.controls.move_forward])
+        self.engine.front_engine_power = float(keys[ctx.controls.move_backward])
+        self.engine.left_engine_power = float(keys[ctx.controls.move_right])
+        self.engine.right_engine_power = float(keys[ctx.controls.move_left])
 
     def _update_rotation(self) -> None:
         mouse = pg.math.Vector2(pg.mouse.get_pos())
@@ -192,24 +198,37 @@ class Spaceship(Thing):
         self.rotation = angle
 
     def _move(self) -> None:
-        self.acceleration.rotate_ip(self.rotation)
-        self.acceleration /= self.mass
+        self.acceleration = self._calculate_acceleration()
         self.velocity += self.acceleration
-        self.velocity -= self.velocity / self.mass * self.density
-        # self.velocity.rotate_ip(self.rotation)
+        if self.velocity:
+            self.velocity.clamp_magnitude_ip(self.engine.max_speed)
         self.position += self.velocity
 
-    def update(self, delta_time: int) -> None:
-        """Update player."""
-        self._update_engine()
-        self._update_rotation()
-        self._move()
-        self._update_image()
+    def _calculate_acceleration(self) -> pg.math.Vector2:
+        acceleration = sum(self._get_forces(), start=pg.math.Vector2())
+        if not acceleration:
+            if not self.velocity:
+                return acceleration
+            acceleration = -self.velocity * self.engine.power * .3
+        acceleration /= self.mass
+        if acceleration.magnitude() <= 0.002:
+            return pg.math.Vector2()
+        return acceleration
+
+    def _get_forces(self) -> list[pg.math.Vector2]:
+        return [
+            pg.math.Vector2(self.engine.back_engine_power * self.engine.power, 0).rotate(self.rotation),
+            pg.math.Vector2(-self.engine.front_engine_power * self.engine.power * .6, 0).rotate(self.rotation),
+            pg.math.Vector2(0, self.engine.left_engine_power * self.engine.power * .4).rotate(self.rotation),
+            pg.math.Vector2(0, -self.engine.right_engine_power * self.engine.power * .4).rotate(self.rotation),
+        ]
 
     def _draw_debug(self, surface: pg.Surface) -> None:
         pg.draw.rect(surface, "red", self.rect, width=1)
+        for force in self._get_forces():
+            draw_arrow(surface, self.rect.center, force, "green")
         draw_arrow(surface, self.rect.center, self.velocity * 20, "yellow")
-        draw_arrow(surface, self.rect.center, self.acceleration * 200, "red")
+        draw_arrow(surface, self.rect.center, self.acceleration * 20, "red")
         debug_surface = get_text_surface(
             f"pos: {self.position}",
             f"rot: {round(self.rotation, 2)}",
@@ -226,7 +245,7 @@ class Spaceship(Thing):
         surface.blit(debug_surface, (pos))
 
 
-class RectSprite(Thing):
+class RectSprite(Sprite):
     """Rect sprite."""
 
     def __init__(self) -> None:
@@ -264,14 +283,13 @@ class Playground(Scene):
             self.exit_application()
         if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
             self.exit_application()
+        if event.type == pg.KEYUP and event.key == pg.K_i:
+            self.camera_free_look = not self.camera_free_look
 
     def _update(self, delta_time: int) -> None:
         self.player.update(delta_time)
 
         key = pg.key.get_pressed()
-
-        if key[pg.K_i]:
-            self.camera_free_look = not self.camera_free_look
 
         # debug camera controller
         if self.camera_free_look and ctx.config.debug:
@@ -296,11 +314,11 @@ class Playground(Scene):
                 offset.normalize_ip()
             offset *= offset.magnitude() * 20
             self.camera.center_at(self.player.position + offset)
-            # self.camera.zoom = 1 + (1 - self.camera._min_zoom) * (self.player.speed / self.player.max_speed)
-            if self.player.acceleration:
-                self.camera.zoom -= 0.01
-            else:
-                self.camera.zoom += 0.01
+            self.camera.zoom = 1 + (1 - self.camera._min_zoom) * (self.player.speed / self.player.max_speed)
+            # if self.player.acceleration:
+            #     self.camera.zoom -= 0.01
+            # else:
+            #     self.camera.zoom += 0.01
 
     def _draw(self, screen: pg.Surface) -> None:
         # screen.fill((50, 50, 50))

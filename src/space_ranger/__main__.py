@@ -62,11 +62,10 @@ def main() -> None:
     stats = pstats.Stats(pr)
     stats.sort_stats(pstats.SortKey.TIME)
     # stats.print_stats()
-    uid = datetime.now().strftime("%S-%M-%H-%d-%m-%Y")
-    profiling_resutls_path = f"logs/profile-{uid}.prof"
-    stats.dump_stats(filename=profiling_resutls_path)
-
-    ctx.logger.info(f"session profiling and logs are written to: {profiling_resutls_path}")
+    # uid = datetime.now().strftime("%S-%M-%H-%d-%m-%Y")
+    # profiling_resutls_path = f"logs/profile-{uid}.prof"
+    # stats.dump_stats(filename=profiling_resutls_path)
+    # ctx.logger.info(f"session profiling and logs are written to: {profiling_resutls_path}")
 
 
 if __name__ == "__main__":
