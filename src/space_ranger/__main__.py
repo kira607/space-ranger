@@ -3,7 +3,6 @@ import cProfile
 import os
 import pstats
 import sys
-from datetime import datetime
 from pathlib import Path
 
 from space_ranger import __version__

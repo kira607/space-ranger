@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from math import atan2, pi
 
 import pygame as pg
@@ -139,6 +139,8 @@ class Sprite(pg.sprite.Sprite):
 
 @dataclass
 class SpaceshipCore:
+    """Spaceship core."""
+
     power: float
     max_speed: float
     acceleration: float
