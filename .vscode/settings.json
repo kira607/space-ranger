@@ -5,7 +5,11 @@
     "[python]": {
         "editor.defaultFormatter": "ms-python.black-formatter",
         "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": true,
+        },
     },
+    "black-formatter.path": [".venv/Scripts/python", "-m", "black"],
     "black-formatter.args": ["--config", "pyproject.toml"],
     "flake8.args": [
         "--config=setup.cfg",
