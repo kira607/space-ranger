@@ -1,15 +1,14 @@
 import typing as t
 
-from space_ranger.core.utils import MISSING
-
 from .component import Component, ComponentKey
 from .entity import Entity, EntityData, EntityUidGenerator
 from .errors import ComponentsCollisionError, EntityDataRemovalAttemptError, UnknownEntityUidError
 from .system import System
+from .utils import MISSING
 
 
 if t.TYPE_CHECKING:
-    from space_ranger.core.scene import Scene
+    from .scene import Scene
 
 
 class EcsManager:

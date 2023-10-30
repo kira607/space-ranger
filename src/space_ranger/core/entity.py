@@ -8,9 +8,8 @@ from .component import Component, ComponentKey, EntityData
 
 
 if t.TYPE_CHECKING:
-    from space_ranger.core.scene import Scene
-
     from .ecs_manager import EcsManager
+    from .scene import Scene
 
 
 class EntityUidGenerator:

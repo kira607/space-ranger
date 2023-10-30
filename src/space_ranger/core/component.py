@@ -3,13 +3,11 @@ from __future__ import annotations
 import typing as t
 from dataclasses import dataclass, field
 
-from .ecs_manager import EcsManager
-
 
 if t.TYPE_CHECKING:
-    from space_ranger.core.scene import Scene
-
+    from .ecs_manager import EcsManager
     from .entity import Entity
+    from .scene import Scene
 
 
 @dataclass(slots=True)

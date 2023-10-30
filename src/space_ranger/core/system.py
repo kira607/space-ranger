@@ -7,9 +7,8 @@ from .entity import Entity
 
 
 if t.TYPE_CHECKING:
-    from space_ranger.core.scene import Scene
-
     from .ecs_manager import EcsManager
+    from .scene import Scene
 
 
 type SystemExecutor = t.Callable[[Scene, Entity], None]
