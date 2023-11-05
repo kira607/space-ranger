@@ -1,1 +1,1 @@
-"""Tests."""
+"""Space Ranger tests."""
