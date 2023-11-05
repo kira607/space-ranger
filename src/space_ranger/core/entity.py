@@ -8,50 +8,39 @@ from .component import Component, ComponentKey, EntityData
 
 
 if t.TYPE_CHECKING:
-    from .ecs_manager import EcsManager
-    from .scene import Scene
+    from .ec_table import EcTable
 
 
-class EntityUidGenerator:
-    """An UID generator for entities."""
+# TODO: remove ignore when mypy supports 3.12
+type EntityUid = str  # type: ignore
 
-    @classmethod
-    def generate_next_id(cls) -> int:
-        """Generate an UID for an entity.
 
-        :return: Newly generated entity UID.
-        :rtype: int
-        """
-        return uuid.uuid4().int
+def generate_entity_uid() -> EntityUid:
+    """Generate an UID for an entity.
+
+    :return: Newly generated entity UID.
+    :rtype: EntityUid
+    """
+    return str(uuid.uuid4()).replace("-", "")
 
 
 @dataclass(slots=True, frozen=True)
 class Entity:
     """Game entity.
 
-    This class provides an OOP interface to underlying ECS registry,
-    where all data about Entities, Components, and Systems is stored.
+    This class provides an OOP interface to underlying :class:`EcTable`
+    to make working with entities easier.
 
     Entity classes are read-only, they cannot be modified or copied.
     """
 
-    _ecs_manager: EcsManager = field(repr=False, hash=False)
-    uid: int = field(hash=True)
+    uid: EntityUid = field(hash=True)
+    _ec_table: EcTable = field(repr=False, hash=False, compare=False)
 
     @property
     def name(self) -> str:
-        """Get a name of the entity."""
-        return self._ecs_manager.get_component(EntityData).name
-
-    @property
-    def scene(self) -> Scene | None:
-        """Get a scene where entity is instantiated.
-
-        :return: A scene instance. If the entity is not instantiated in any
-          scene returns None.
-        :rtype: Scene | None
-        """
-        return self._ecs_manager.scene
+        """Get entity name."""
+        return self._ec_table.get_component(self.uid, EntityData).name  # type: ignore
 
     def add_component(self, component: Component) -> None:
         """Add a component to an entity.
@@ -62,7 +51,7 @@ class Entity:
         :raises ComponentsCollisionError: A component with type of
           given component already exists for this entity.
         """
-        self._ecs_manager.add_component(self.uid, component)
+        self._ec_table.add_component(self.uid, component)
 
     def get_component(self, component_key: ComponentKey) -> Component | None:
         """Get a component instance.
@@ -74,7 +63,7 @@ class Entity:
           does not exist for this entity, `None` is returned.
         :rtype: Component | None
         """
-        return self._ecs_manager.get_component(self.uid, component_key)
+        return self._ec_table.get_component(self.uid, component_key)
 
     def remove_component(self, component_key: ComponentKey) -> None:
         """Remove a component from an entity.
@@ -88,7 +77,7 @@ class Entity:
         :raises EntityDataRemovalAttemptError: Removing :class:`EntityData` component
           from an entity is forbidden.
         """
-        self._ecs_manager.remove_component(self.uid, component_key)
+        self._ec_table.remove_component(self.uid, component_key)
 
     def __iter__(self) -> t.Iterator[Component]:
         """Iterate over entity components.
@@ -96,4 +85,4 @@ class Entity:
         :return: Iterator over entity components.
         :rtype: Iterator[Component]
         """
-        return self._ecs_manager.iter_components(self.uid)
+        return self._ec_table.iter_components(self.uid)

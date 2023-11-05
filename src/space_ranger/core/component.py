@@ -1,49 +1,49 @@
 from __future__ import annotations
 
 import typing as t
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 if t.TYPE_CHECKING:
-    from .ecs_manager import EcsManager
-    from .entity import Entity
-    from .scene import Scene
+    from .entity import EntityUid
 
 
 @dataclass(slots=True)
 class Component:
-    """Base component for all other components.
+    """Base component.
 
     Components are simple "structs" with data, which
     is modified by Systems in runtime.
+
+    To create a new component simply inherit from
+    base this class and define required component
+    fields.
+
+        .. code-block:: python
+
+        @dataclass(slots=True)
+        class MyComponent(Component):
+            speed: float = 0.0
+            max_speed: float = 5.0
+            is_jumping: bool = False
+
+    Some recomendations for component definition:
+
+    * Use slotted dataclass. It will make components
+        faster and easier to create.
+
+    * Do not define any methods. The sole purpose
+        of components is to store data. The processing of
+        this data is indendent to be implemented in systems.
     """
 
-    _ecs_manager: EcsManager
-    _entity_uid: int = field(default=None)
+    @classmethod
+    def get_key(cls) -> ComponentKey:
+        """Get a component key.
 
-    @property
-    def entity(self) -> Entity | None:
-        """Get an entity where this component is attached to.
-
-        :return: Entity instance where this component is attached to, if
-          the component is not attached to any entity returns None.
-        :rtype: Entity | None
+        :return ComponentKey: A component key.
         """
-        return self._ecs_manager.get_entity_by_uid(self._entity_uid, None)
-
-    @property
-    def scene(self) -> Scene:
-        """Get a scene where component's entity is instantiated.
-
-        :return: A scene instance. If component is not attached to any entity
-          or an entity is not instantiated in any scene returns None.
-        :rtype: Scene | None
-        """
-        return self.entity.scene if self.entity else None
-
-    def get_key(self) -> ComponentKey:
-        """Get a component key."""
-        return type(self)
+        return cls
 
 
 type ComponentKey = type[Component]
@@ -70,5 +70,5 @@ class EntityData:
     """
 
     name: str
-    uid: int
+    uid: EntityUid
     enabled: bool = True
