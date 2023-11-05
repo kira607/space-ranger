@@ -42,8 +42,7 @@ class EcTable:
         :param str name: Name of the entity.
         :param Component components: List of components to be added to the entity.
 
-        :return: New entity.
-        :rtype: Entity
+        :return Entity: New entity.
         """
         uid = generate_entity_uid()
 
@@ -63,15 +62,15 @@ class EcTable:
     def get_entity_by_uid(self, uid: EntityUid, default: t.Any = MISSING) -> Entity | t.Any:
         """Get an entity by its UID.
 
-        :param uid: Entity UID
-        :type uid: EntityUid
+        :param EntityUid uid: Entity UID
+        :param t.Any default: A default value to return if entity with given UID does not exist, defaults to MISSING
 
         :raises UnknownEntityUidError: Entity with the given UID does not exist and
             a default value was not provided.
 
-        :return: Entity instance if found one, default otherwise.
-            If default value was not provided an exception is raised.
-        :rtype: Entity | None
+        :return Entity | t.Any: Entity instance if found one, default otherwise.
+            If default value was not provided an :class:`UnknownEntityUidError`
+            exception is raised.
         """
         entity = self._table.get(uid, MISSING)
         if entity is MISSING:
@@ -86,8 +85,7 @@ class EcTable:
         Deliton of an entity will cause the loss
         of all of its data and components.
 
-        :param uid: Entity UID to delete.
-        :type uid: EntityUid
+        :param EntityUid uid: Entity UID to delete.
 
         :raises UnknownEntityUidError: Entity with the given UID does not exist.
         """
@@ -100,12 +98,9 @@ class EcTable:
     def add_component(self, entity_uid: EntityUid, component: Component) -> None:
         """Add a component to an entity.
 
-        :param entity_uid: UID of an entity to add a component to.
-        :type entity_uid: EntityUid
-        :param component: A component to add to an entity.
-        :type component: Component
+        :param EntityUid entity_uid: UID of an entity to add a component to.
+        :param Component component: A component to add to an entity.
 
-        :raises UnknownEntityUidError: Entity with the given UID does not exist.
         :raises ComponentsCollisionError: A component with type of
             given component already exists for this entity.
         """
@@ -121,15 +116,12 @@ class EcTable:
     def get_component(self, entity_uid: EntityUid, component_key: ComponentKey) -> Component | None:
         """Get a component instance by the given `entity_uid` and `component_key`.
 
-        :param entity_uid: Entity UID that holds the component.
-        :type entity_uid: EntityUid
-        :param component_key: Key of a component to get.
-        :type component_key: ComponentKey
+        :param EntityUid entity_uid: Entity UID that holds the component.
+        :param ComponentKey component_key: Key of a component to get.
 
-        :return: Component instance. If entity with given `entity_uid` does not exist
+        :return Component | None: Component instance. If entity with given `entity_uid` does not exist
             or it does not contain a component with the given `component_key`
             returns `None`.
-        :rtype: Component | None
         """
         return self._table.get(entity_uid, {}).get(component_key)
 
@@ -164,8 +156,7 @@ class EcTable:
     def iter_entities(self) -> t.Iterator[Entity]:
         """Iterate over entities.
 
-        :return: Iterator over entities.
-        :rtype: Iterator[Entity]
+        :return Iterator[Entity]: Iterator over entities.
         """
         return iter((self.get_entity_by_uid(uid) for uid in self._table))
 
@@ -176,8 +167,7 @@ class EcTable:
 
         :raises UnknownEntityUidError: Entity with the given UID does not exist.
 
-        :return: Iterator over entity components.
-        :rtype: Iterator[Component]
+        :return Iterator[Component]: Iterator over entity components.
         """
         # below line invokes an UID check and might raise UnknownEntityUidError
         self.get_entity_by_uid(uid)
@@ -188,8 +178,7 @@ class EcTable:
     def get_entities(self) -> list[Entity]:
         """Get a list of entities.
 
-        :return: A list of entities.
-        :rtype: list[Entity]
+        :return list[Entity]: A list of entities.
         """
         return list(self.iter_entities())
 
@@ -202,10 +191,9 @@ class EcTable:
 
         :param ComponentKey components_keys: Components keys that entity should match.
         :param bool partitial: If `True`, will require an entity match all `components_keys`,
-          otherwise will require an entity to match at least one of `components_keys`.
+            otherwise will require an entity to match at least one of `components_keys`.
 
-        :return: Set of entities matching given components.
-        :rtype: set[Entity]
+        :return set[Entity]: Set of entities matching given components.
         """
         match_f = any if partitial else all
         return {e for e in self.iter_entities() if match_f((e.get_component(k) for k in components_keys))}
