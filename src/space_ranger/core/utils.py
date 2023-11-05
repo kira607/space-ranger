@@ -8,6 +8,8 @@ import pygame as pg
 class _Missing:
     """Explicit missing class."""
 
+    __slots__ = ()
+
     def __bool__(self) -> bool:
         """Get bool value."""
         return False
