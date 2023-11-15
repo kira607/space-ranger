@@ -63,7 +63,8 @@ class EcTable:
         """Get an entity by its UID.
 
         :param EntityUid uid: Entity UID
-        :param t.Any default: A default value to return if entity with given UID does not exist, defaults to MISSING
+        :param t.Any default: A default value to return if entity with given
+            UID does not exist, defaults to MISSING.
 
         :raises UnknownEntityUidError: Entity with the given UID does not exist and
             a default value was not provided.

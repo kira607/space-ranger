@@ -53,10 +53,10 @@ def main() -> None:
     ctx.screen.height = 1080
 
     app = Application(get_title())
-    app.register_scene(Playground("playground"))
+    # app.register_scene(Playground("playground"))
 
     with cProfile.Profile() as pr:
-        app.run("playground")
+        app.run()
 
     stats = pstats.Stats(pr)
     stats.sort_stats(pstats.SortKey.TIME)

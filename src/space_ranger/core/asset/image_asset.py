@@ -10,4 +10,4 @@ class ImageAsset(Asset[pygame.Surface]):
 
     def _load_asset(self) -> pygame.Surface:
         """Load image asset."""
-        return pygame.image.load(self.path, **self._kwargs)
+        return pygame.image.load(self.path, **self._kwargs).convert_alpha()

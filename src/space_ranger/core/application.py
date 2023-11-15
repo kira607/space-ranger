@@ -1,135 +1,174 @@
+from __future__ import annotations
+
 import pygame as pg
 
-from ._ctx import ctx
-from .logging import LoggerMixin
+from .entity import Entity
+from .errors import UnknownSceneIdError
+from .logging import LoggerMixin, init_logging
+from .resource import Resource, ResourceKey
 from .scene import Scene
-from .utils import get_text_surface
+
+
+# from .utils import get_text_surface
+
+
+_DEFAULT_SCENE = Scene("__default__")
+
+
+@_DEFAULT_SCENE.system(pipeline=_DEFAULT_SCENE._systems_schedule.start)
+def _window_setup(app: Application, entities: set[Entity]) -> None:
+    app.window.set_size(640, 480)
+
+
+@_DEFAULT_SCENE.system()
+def _close_window_on_esc(app: Application, entities: set[Entity]) -> None:
+    for event in app.events:
+        if event.type == pg.QUIT:
+            app.quit()
+        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+            app.quit()
 
 
 class Application(LoggerMixin):
-    """A main application class."""
+    """A main application class.
 
-    def __init__(self, title: str = "Game") -> None:
-        self.logger.info(f"Initializing application {title}...")
+    :param title: The title of the application, defaults to "Application".
+    """
 
-        self._title = title
-        self._scenes: dict[str, Scene] = {}
-        self._running = False
+    def __init__(self, title: str = "Application") -> None:
+        init_logging()
+        self.logger.info(f"Initializing application '{title}'...")
 
-        pg.init()
-
-        self._screen = pg.display.set_mode(
-            ctx.screen.size,
-            pg.HWSURFACE | pg.DOUBLEBUF,
-            vsync=ctx.screen.vsync,
-        )
-
-        ctx.screen.width = self._screen.get_width()
-        ctx.screen.height = self._screen.get_height()
-        pg.display.set_caption(self._title)
-
+        self._resources: dict[ResourceKey, Resource] = {}
+        self._title: str = title
+        self._fps: int = 60
+        self._delta_time: float = 0
+        self._events: dict[int, pg.event.Event] = {}
         self._clock = pg.time.Clock()
-        self._debug_font = ctx.debug_text_font
-
+        self._scenes: dict[str, Scene] = {}
         self._current_scene: Scene
 
-    def register_scene(self, scene: Scene) -> None:
-        """Add a scene to the application."""
-        self._scenes[scene.id] = scene
+        # initialize pygame
+        pg.init()
 
-    def run(self, start_scene_id: str) -> None:
-        """Run application."""
+        self.set_title(title)
+
+    @property
+    def current_scene(self) -> Scene:
+        """Get the current scene."""
+        return self._current_scene
+
+    def switch_scene(self, next_scene_id: str) -> None:
+        """Switch a scene.
+
+        :param str next_scene_id: ID of a scene to switch to.
+
+        :raises UnknownSceneIdError: Given `next_scene_id`
+          doesn't match any known scene ID.
+        """
+        if (next_scene := self._scenes.get(next_scene_id)) is None:
+            raise UnknownSceneIdError(next_scene_id)
+
+        self._current_scene.finish()
+        self._current_scene = next_scene
+        self._current_scene.start()
+
+    @property
+    def delta_time(self) -> float:
+        """Get frame delta time."""
+        return self._delta_time
+
+    @property
+    def events(self) -> dict[int, pg.event.Event]:
+        """Get a list of events."""
+        return self._events
+
+    @property
+    def title(self) -> str:
+        """Get application titile.
+
+        :return str: An application title.
+        """
+        return self._title
+
+    def set_title(self, title: str) -> None:
+        """Set application titile.
+
+        :param str title: An application titile.
+        """
+        self._title = str(title)
+
+    def register_scene(self, scene: Scene) -> None:
+        """Register a scene in the application.
+
+        :param Scene scene: The scene to register.
+        """
+        self._scenes[scene.name] = scene
+        scene._app = self
+
+    def quit(self) -> None:  # noqa: A003
+        """Quit the application."""
+        self._running = False
+
+    def run(self, start_scene_id: str = "__default__") -> None:
+        """Run application.
+
+        :param str start_scene_id: A starting scene id.
+        """
         try:
-            self._init(start_scene_id)
-            self._main_loop()
-        except BaseException as e:
+            self._run(start_scene_id)
+        except (Exception, KeyboardInterrupt) as e:
             self.logger.exception(f"Unhandled exception {e}:")
             self.logger.critical("Application has stopped because of an unhandled exception")
         finally:
-            self._cleanup()
+            self._finish()
 
-    def _init(self, start_scene_id: str) -> None:
+    def _run(self, start_scene_id: str) -> None:
+        """Run a main loop of the application."""
+        self.logger.info("Running main loop of the application")
+        self._start(start_scene_id)
+        while self._running:
+            self._delta_time = self._clock.tick(self._fps)
+            self._events = {event.type: event for event in pg.event.get()}
+            self._update()
+
+    def _start(self, start_scene_id: str) -> None:
         """Initialize application."""
         if not self._scenes:
-            raise ValueError("Cannot start application with zero scenes.")
+            # raise ValueError("Cannot start application with zero scenes.")
+            self.register_scene(_DEFAULT_SCENE)
+            self._current_scene = _DEFAULT_SCENE
+
+        if start_scene_id not in self._scenes:
+            raise UnknownSceneIdError(start_scene_id)
 
         self._current_scene = self._scenes[start_scene_id]
         self._current_scene.start()
         self._running = True
 
-    def _main_loop(self) -> None:
-        """Run a main loop of the application."""
-        self.logger.info("Running main loop of the application")
-        while self._running:
-            delta_time = self._clock.tick(ctx.screen.fps)
-            self._process_events()
-            self._update(delta_time)
-            self._draw()
+    def _update(self) -> None:
+        """Run current scene update."""
+        self.current_scene.update()
 
-    def _process_events(self) -> None:
-        """Process pygame events."""
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self._running = False
-            if event.type == pg.KEYDOWN and event.key == pg.K_F3:
-                on_off = "off" if ctx.config.debug else "on"
-                self.logger.info(f"Switching debug mode to: {on_off}")
-                ctx.config.debug = not ctx.config.debug
-            self._current_scene.process_event(event)
-
-    def _update(self, delta_time: int) -> None:
-        """Run current scene update.
-
-        :param int delta_time: Delta time (in milliseconds).
-        """
-        if self._current_scene.is_app_should_quit:
-            self._running = False
-        elif self._current_scene.is_done:
-            self._current_scene = self._get_next_scene()
-        self._current_scene.update(delta_time)
-
-    def _draw(self) -> None:
-        """Render current scene."""
-        self._current_scene.draw(self._screen)
-        if ctx.config.debug:
-            self._draw_debug_info()
-        pg.display.update()
-
-    def _draw_debug_info(self) -> None:
-        debug_surface = get_text_surface(
-            f"FPS: {round(self._clock.get_fps(), 2)}",
-            f"Scene: {self._current_scene.id}",
-            f"Screen size: {ctx.screen.width}:{ctx.screen.height}",
-            font=ctx.debug_text_font,
-            color=ctx.debug_text_color,
-            background=ctx.debug_text_background,
-            antialias=True,
-        )
-        self._screen.blit(debug_surface, (0, 0))
-
-        # screen grid
-        pg.draw.line(self._screen, (30, 30, 30, 200), (0, ctx.screen.center.y), (ctx.screen.width, ctx.screen.center.y))
-        pg.draw.line(
-            self._screen, (30, 30, 30, 200), (ctx.screen.center.x, 0), (ctx.screen.center.x, ctx.screen.height)
-        )
-
-    def _cleanup(self) -> None:
-        """Cleanup before quitting application."""
+    def _finish(self) -> None:
+        """Cleanup before quitting the application."""
         self._current_scene.finish()
         pg.quit()
 
-    def _get_next_scene(self) -> Scene:
-        """Get a next scene.
+    # def _draw_debug_info(self) -> None:
+    #     debug_surface = get_text_surface(
+    #         f"FPS: {round(self._clock.get_fps(), 2)}",
+    #         f"Scene: {self._current_scene.name}",
+    #         f"Screen size: {ctx.screen.width}:{ctx.screen.height}",
+    #         font=ctx.debug_text_font,
+    #         color=ctx.debug_text_color,
+    #         background=ctx.debug_text_background,
+    #         antialias=True,
+    #     )
+    #     self._window.blit(debug_surface, (0, 0))
 
-        This will finish current scene and startup a next scene.
-
-        :return: Next scene.
-        :rtype: Scene
-        """
-        previous_scene_id = self._current_scene.id
-        next_scene_id = self._current_scene.get_next_scene()
-        self._current_scene.finish()
-        next_scene = self._scenes[next_scene_id]
-        next_scene.previous = previous_scene_id
-        next_scene.start()
-        return next_scene
+    #     # screen grid
+    #     pg.draw.line(self._window, (30, 30, 30, 200), (0, ctx.screen.center.y), (ctx.screen.width, ctx.screen.center.y))
+    #     pg.draw.line(
+    #         self._window, (30, 30, 30, 200), (ctx.screen.center.x, 0), (ctx.screen.center.x, ctx.screen.height)
+    #     )

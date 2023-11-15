@@ -1,104 +1,125 @@
 from __future__ import annotations
 
-import pygame as pg
+import typing as t
 
+from .component import Component, ComponentKey
+from .ec_table import EcTable
+from .entity import Entity
 from .logging import LoggerMixin
+from .system import SystemExecutor, SystemsPipeline, SystemsSchedule, make_system
+
+
+if t.TYPE_CHECKING:
+    from .application import Application
 
 
 class Scene(LoggerMixin):
     """An application scene.
 
-    Acts like a usual pygame event loop.
-
-    A scene subclasses should never be inherited.
-
-    Provides with methods to override to control the loop:
-    * `_start()` - initialize scene
-    * `_process_event(self, event: pg.event.Event)` - process event
-    * `_update(self, delta_time: int)` - update
-    * `_draw(self, screen: pg.Surface)` - draw
+    :param str name: The name of the scene.
     """
 
-    def __init__(self, scene_id: str) -> None:
-        self._id = str(scene_id)
-        self._done = False
-        self._quit = False
-        self._previous: str | None = None
-        self._next: str | None = None
+    def __init__(self, scene_name: str) -> None:
+        self._name = str(scene_name)
+        self._app: Application
+        self._ec_table = EcTable()
+        self._systems_schedule: SystemsSchedule = SystemsSchedule()
 
     @property
-    def id(self) -> str:  # noqa: A003
-        """A scene id."""
-        return self._id
+    def name(self) -> str:
+        """A scene name."""
+        return self._name
 
-    @property
-    def is_done(self) -> bool:
-        """A flag indicating whether a scene is finished."""
-        return self._done
+    def add_entity(self, entity_name: str, *components: Component) -> Entity:
+        """Add an entity the a scene.
 
-    @property
-    def is_app_should_quit(self) -> bool:
-        """A flag indicating whether the app shoud be stopped."""
-        return self._quit
+        :param str entity_name: The name of the entity.
+        :param Component components: List of components to attach to the entity.
 
-    @property
-    def previous(self) -> str | None:
-        """A previous scene id."""
-        return self._previous
-
-    @previous.setter
-    def previous(self, value: str) -> None:
-        self._previous = value
-
-    def switch_scene(self, next_scene_id: str) -> None:
-        """Tell application to switch to another scene.
-
-        This will finish up current scene.
-
-        :param next_scene_id: Id of a scene to switch to.
-        :type next_scene_id: str
+        :return Entity: Entity instance.
         """
-        self._next = next_scene_id
-        self._done = True
+        entity = self._ec_table.create_entity(entity_name, *components)
+        entity_uid = entity.uid
+        for pipeline in (self._systems_schedule.start, self._systems_schedule.update):
+            for system in pipeline._systems:
+                if system.match_entity(entity_uid):
+                    system.add_entity(entity_uid)
+        return entity
 
-    def exit_application(self) -> None:
-        """Exit application."""
-        self._quit = True
+    def system(
+        self,
+        *required_components: ComponentKey,
+        pipeline: SystemsPipeline | None = None,
+    ) -> t.Callable[[SystemExecutor], None]:
+        """Add a system to the scene.
 
-    def get_next_scene(self) -> str:
-        """Get a next scene id."""
-        if self._next is None:
-            raise RuntimeError("Next scene id is not set!")
-        return self._next
+        This method returns a decorator function that takes a
+        system executor callable as an argument.
+
+        System executor signature must be::
+
+            (Application, set[Entity]) -> None
+
+        Function system executor example::
+
+            scene = Scene("my scene")
+
+            @scene.system(ComponentA, ComponentB, ...)
+            def movement_system(app: Application, entities: set[Entity]) -> None:
+                ...  # system code here
+
+            ### or
+
+            def movement_system(app: Application, entities: set[Entity]) -> None:
+                ...  # system code here
+
+            scene.system(ComponentA, ComponentB, ...)(movement_system)
+
+        Callable object system executor example::
+
+            scene = Scene("my scene")
+
+            class System:
+
+                def __call__(app: Application, entities: set[Entity]) -> None:
+                    ...  # system code here
+
+            scene.system(ComponentA, ComponentB, ...)(System())
+
+        :param ComponentKey required_components: A list of components required
+            by the system.
+        :param SystemsPipeline | None pipeline: A pipeline to which to add the
+            system, defaults to None
+
+        :return t.Callable[[SystemExecutor], None]: A decorator function that registers the system.
+        """
+
+        def decorator(executor: SystemExecutor) -> None:
+            system = make_system(executor, self._ec_table, *required_components)
+            if pipeline is not None:
+                pipeline.add(system)
+            else:
+                self._systems_schedule.update.add(system)
+
+        return decorator
 
     def start(self) -> None:
         """Do a scene statup.
 
         This method is called before the fisrt game loop iteration.
         """
-        self.logger.info(f"Starting up {self.__class__.__name__} ({repr(self.id)}) scene...")
-        self._start()
+        self.logger.info(f"Starting up {repr(self.name)} scene...")
+        for pipeline in (self._systems_schedule.start, self._systems_schedule.update):
+            for system in pipeline._systems:
+                system.update_entities()
+        self._systems_schedule.start.run(self._app)
 
-    def process_event(self, event: pg.event.Event) -> None:
-        """Process a pygame event.
-
-        :param pygame.event.Event event: An event to process.
-        """
-        self._process_event(event)
-
-    def update(self, delta_time: int) -> None:
+    def update(self) -> None:
         """Update scene.
 
-        :param int delta_time: Delta time (in milliseconds).
+        This method runs update systems.
         """
-        self._update(delta_time)
-
-    def draw(self, screen: pg.Surface) -> None:
-        """Draw scene on a given screen.
-
-        :param pygame.Surface screen: Target screen.
-        """
-        self._draw(screen)
+        self._systems_schedule.update.run(self._app)
 
     def finish(self) -> None:
         """Do a scene cleanup.
@@ -106,42 +127,4 @@ class Scene(LoggerMixin):
         This method is called after a last frame
         before scene switch or application shutdown.
         """
-        self.logger.info(f"Cleaning up '{self.id}' scene...")
-        self._done = False
-        self._finish()
-
-    def _start(self) -> None:
-        """Do a scene statup.
-
-        This method is called before the fisrt game loop iteration.
-        """
-        pass
-
-    def _process_event(self, event: pg.event.Event) -> None:
-        """Process a pygame event.
-
-        :param pygame.event.Event event: An event to process.
-        """
-        pass
-
-    def _update(self, delta_time: int) -> None:
-        """Update scene.
-
-        :param int delta_time: Delta time (in milliseconds).
-        """
-        pass
-
-    def _draw(self, screen: pg.Surface) -> None:
-        """Draw scene on a given screen.
-
-        :param pygame.Surface screen: Target screen.
-        """
-        pass
-
-    def _finish(self) -> None:
-        """Do a scene cleanup.
-
-        This method is called after a last frame
-        before scene switch or application shutdown.
-        """
-        pass
+        self.logger.info(f"Cleaning up '{self.name}' scene...")
