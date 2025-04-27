@@ -12,7 +12,7 @@ from space_ranger.scenes import Playground
 
 
 def get_title() -> str:
-    """Get title."""
+    """Get application title."""
     return f"Space ranger {__version__}"
 
 

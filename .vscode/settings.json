@@ -1,5 +1,6 @@
 {
     // pylance
+    "python.analysis.autoImportCompletions": true,
     "python.analysis.typeCheckingMode": "off",
     "python.analysis.autoFormatStrings": true,
     "python.analysis.extraPaths": [
@@ -7,40 +8,46 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-
-    // isort
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter",
-        "editor.formatOnSave": true,
-        "editor.codeActionsOnSave": {
-            "source.organizeImports": "explicit"
-        },
-    },
-
-    // black
-    "black-formatter.path": [".venv/Scripts/python", "-m", "black"],
-    "black-formatter.args": ["--config", "pyproject.toml"],
-
-    // flake8
-    "flake8.args": [
-        "--config=setup.cfg",
+    "python.testing.pytestArgs": [
+        "tests"
     ],
 
+    // black
+    "black-formatter.importStrategy": "fromEnvironment",
+    "black-formatter.args": [
+        "--config",
+        "pyproject.toml"
+    ],
+
+    // ruff
+    "ruff.configuration": "pyproject.toml",
+
     // autodocstring
-    "autoDocstring.docstringFormat": "one-line-sphinx",
+    "autoDocstring.docstringFormat": "google",
     "autoDocstring.guessTypes": true,
     "autoDocstring.quoteStyle": "\"\"\"",
-    
+
     // mypy
     "mypy-type-checker.args": [
         "--config-file=pyproject.toml",
     ],
     "mypy-type-checker.importStrategy": "fromEnvironment",
 
+    // todo tree
+    "todo-tree.regex.enableMultiLine": true,
+
+    // VSCode
+    // exclude files from explorer by pattern
     "files.exclude": {
-        "**/__pycache__": true
+        "**/__pycache__": true,
+        ".mypy_cache": true,
+        ".pytest_cache": true,
+        "**/*.egg-info": true,
+        ".venv": true,
     },
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
+    // This is a workaround to get VSCode to set a proper folder for user data
+    // Issue about VSCode changing XDG env vars: https://github.com/microsoft/vscode/issues/237608
+    "terminal.integrated.env.linux": {
+        "XDG_DATA_HOME": "/home/kirill/.local/share",
+    }
 }

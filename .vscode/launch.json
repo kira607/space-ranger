@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Space Ranger",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "space_ranger",
             "console": "integratedTerminal",
